@@ -43,3 +43,6 @@ The evaluator in tests/engine/live-eval.mjs requires --live and server environme
 ONE ACCESS CHECK
 User will enter key locally. Run from repo root: node --env-file=.env tests/engine/telecom-smoke.mjs --run
 This makes exactly one GET /models, not a generation request, and creates an ignored attempt marker before sending. No retry/list-all/probe loop. After successful access, choose an actually returned model ID and configure LLM_MODEL before a separately requested generation test. .env and attempt marker never enter Git. No API request has yet been made in this configuration task.
+
+LIVE RESULT UPDATE
+openai/gpt-oss-120b returned HTTP200 and correct full extraction in one trial (~2.1s). Subsequent8-case development run:7 passed,1 INVALID_MODEL_OUTPUT. Total9 generation calls, no retries. Local LLM_MODEL set to this model; not a claim of production stability. See tests/engine/gpt-oss-evaluation-result.json. Previous generic failure of Qwen does not establish that model is unavailable. Next improvement: constrained JSON output if supported, with safe structural diagnostics; no further live runs performed.
