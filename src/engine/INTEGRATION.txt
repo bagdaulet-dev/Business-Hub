@@ -10,12 +10,12 @@ The latter is OFFLINE with a preset rule, not natural-language AI. Expected outp
 
 MODULES
 src/providers/rule-parser.mjs: parseRule(text, {complete, timeoutMs}) extracts/validates a rule. Strict validation, null unspecified fields, bounded input/output, deadline, safe errors, no silent fallback or retries. Prompt-only semantic correctness is unverified: model can return valid JSON with wrong meaning; display parsed conditions for user review.
-src/providers/anthropic.mjs: createAnthropicCompletion({apiKey, model, apiVersion?, fetchImpl?}) returns complete. Server-only use; no automatic env loading. API key and actual model ID must be supplied by server configuration, not browser input. Construction performs no requests. HTTP mocks tested; live model and account access NOT tested. API reference consulted: https://platform.claude.com/docs/en/api/messages/create and /docs/en/api/overview. Default API version is 2023-06-01; choose a compatible available model/version when configuring.
+src/providers/telecom.mjs: createTelecomCompletion({apiKey, model, baseUrl?, fetchImpl?, maxTokens?}) returns complete for the Kazakhtelecom OpenAI-compatible gateway. Approved base URL is https://llm.telecom.kz/v1; redirects prohibited. Server-only configuration uses LLM_API_KEY, LLM_MODEL, LLM_BASE_URL. No automatic requests or retries. Model ID must come from /models; no model is guessed. User-supplied KT access PDF documents Bearer authentication, /models and /chat/completions. Mock transport tests do not prove live access.
 src/engine/evaluate-rule.mjs: evaluateRule(observations, validatedRule, options) selects matching observations and partitions exact identities. Null constraints are unrestricted, not inferred; separate grade/set/finish groups get separate baselines. Unknown identity fields excluded with warning. Uses source-observation schema, not final app schema.
 src/engine/pricing.mjs: evaluatePricing(observations, exactIdentity, options) computes leave-one-out comparisons. minComparables default 3 is an internal configurable choice pending contract confirmation. Filter budget/discount after full baseline. Explicit bundle/accessory/replica flags excluded, unknown item_type is not independently authenticated. No risk scoring.
 
 SERVER CALL SEQUENCE (after configuration and contract adapter)
-const complete = createAnthropicCompletion({apiKey: serverKey, model: serverModel});
+const complete = createTelecomCompletion({apiKey: serverKey, model: serverModel});
 const rule = await parseRule(userText, {complete});
 const evaluation = evaluateRule(observations, rule, {basis:'item_price'});
 Return rule and adapted evaluation with parserMode live-llm ONLY if the real provider was called successfully. Preset demos must say preset-demo. Unsupported currencies, grade ranges or conflicting/unsupported constraints should return explicit errors; current extraction subset is intentionally limited. Live semantic evaluation remains required.
@@ -37,5 +37,9 @@ INTERNAL COMPOSED ENTRYPOINT
 runQuery({text, observations, complete, timeoutMs?, pricingOptions?}) in run-query.mjs combines parser and grouping. parser_mode=provider means an injected provider was used; it does NOT assert a live model (tests inject mocks). The server owns mapping this to verified live-llm metadata. Three pipeline tests cover one computed result, no matches and invalid extraction before calculation.
 
 LIVE VALIDATION PREPARATION
-The environment checked in this session has no ANTHROPIC_API_KEY or ANTHROPIC_MODEL; no project .env file was present. No credentials searched elsewhere or printed. Shared contract still absent from origin/main.
+The environment checked in this session has no LLM_API_KEY or LLM_MODEL; a local git-ignored .env is now prepared with public telecom URL and empty model/key fields for user configuration. No credentials searched elsewhere or printed. Shared contract still absent from origin/main.
 The evaluator in tests/engine/live-eval.mjs requires --live and server environment configuration. First run --live --limit 1; inspect safe summary, then run remaining approved evaluation cases. No automatic retries. Full semantic reliability is not established by mock tests.
+
+ONE ACCESS CHECK
+User will enter key locally. Run from repo root: node --env-file=.env tests/engine/telecom-smoke.mjs --run
+This makes exactly one GET /models, not a generation request, and creates an ignored attempt marker before sending. No retry/list-all/probe loop. After successful access, choose an actually returned model ID and configure LLM_MODEL before a separately requested generation test. .env and attempt marker never enter Git. No API request has yet been made in this configuration task.

@@ -1,7 +1,7 @@
 // Explicit, bounded live semantic trial. No .env loading, retries or credential output.
 import {readFileSync} from 'node:fs';
 import {parseRule} from '../../src/providers/rule-parser.mjs';
-import {createAnthropicCompletion} from '../../src/providers/anthropic.mjs';
+import {createTelecomCompletion} from '../../src/providers/telecom.mjs';
 import {evaluateRule} from '../../src/engine/evaluate-rule.mjs';
 
 const safeErrors = new Set(['INVALID_MODEL_OUTPUT','UNSUPPORTED_QUERY','QUERY_NEEDS_CARD',
@@ -26,11 +26,11 @@ async function main() {
       note:'No provider called. Explicit --live is required; default limit is one trial case.'});
     return;
   }
-  // Access only these two names and only after the explicit live switch.
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  const model = process.env.ANTHROPIC_MODEL;
+  // Access only these configuration names and only after the explicit live switch.
+  const apiKey = process.env.LLM_API_KEY;
+  const model = process.env.LLM_MODEL;
   if (!apiKey?.trim() || !model?.trim()) throw new Error('MISSING_PROVIDER_CONFIGURATION');
-  const complete = createAnthropicCompletion({apiKey,model});
+  const complete = createTelecomCompletion({apiKey,model,baseUrl:process.env.LLM_BASE_URL});
   const {observations} = JSON.parse(readFileSync(new URL('../../data/demo/charizard-psa9-source-observations.json',import.meta.url),'utf8'));
   const results=[];
   let providerAttempts=0;
