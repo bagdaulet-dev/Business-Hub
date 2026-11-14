@@ -115,3 +115,11 @@ test('discount threshold applies after complete baseline and rejects unknown/rou
     assert.throws(()=>evaluatePricing(observations,identity,{minDiscountPct:bad}),/minDiscountPct/);
   }
 });
+
+test('unsupported monetary extremes reject rather than lose fractional-cent median precision',()=>{
+ const items=copy();items[0].price_cents=Number.MAX_SAFE_INTEGER;
+ assert.throws(()=>evaluatePricing(items,identity),/MAX_CENTS/);
+ const cap=Math.floor(Number.MAX_SAFE_INTEGER/2);
+ const small=observations.slice(0,3).map((x,i)=>({...x,price_cents:[0,cap-1,cap][i]}));
+ assert.equal(evaluatePricing(small,identity,{minComparables:2}).findings[0].reference_price_cents,cap-0.5);
+});

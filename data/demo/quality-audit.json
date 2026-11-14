@@ -1,0 +1,22 @@
+{
+  "errors": [],
+  "warnings": [
+    "observations[0]: SOURCE_CAPTURE_TIME_UNKNOWN",
+    "observations[1]: SOURCE_CAPTURE_TIME_UNKNOWN",
+    "observations[2]: SOURCE_CAPTURE_TIME_UNKNOWN",
+    "observations[3]: SOURCE_CAPTURE_TIME_UNKNOWN",
+    "observations[4]: SOURCE_CAPTURE_TIME_UNKNOWN",
+    "observations[5]: SOURCE_CAPTURE_TIME_UNKNOWN",
+    "MIXED_AGE_CACHED_OBSERVATIONS_NOT_A_SIMULTANEOUS_MARKET_SNAPSHOT",
+    "SHIPPING_NOT_COMPARABLE_FOR_COMMON_DESTINATION"
+  ],
+  "summary": {
+    "observation_count": 6,
+    "unique_ids": 6,
+    "live_verified": false,
+    "price_basis": "item_price_excluding_shipping_and_tax",
+    "current_availability_verified": false,
+    "authenticity_verified": false,
+    "source_capture_times_known": 0
+  }
+}

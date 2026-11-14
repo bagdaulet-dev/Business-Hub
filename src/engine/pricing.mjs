@@ -7,10 +7,12 @@ const normalize = value => value == null ? '' : String(value).trim().replace(/\s
 // Unknown item_type is allowed; this utility does not infer product type from titles.
 const excludedItemTypes = new Set(['accessory', 'replica', 'bundle', 'proxy', 'display case', 'empty slab']);
 
+export const MAX_CENTS = Math.floor(Number.MAX_SAFE_INTEGER / 2);
+
 export function validateMoney(value, name = 'money', nullable = false) {
   if (nullable && value == null) return;
-  if (!Number.isSafeInteger(value) || value < 0) {
-    throw new TypeError(`${name} must be non-negative safe integer cents${nullable ? ' or null' : ''}`);
+  if (!Number.isSafeInteger(value) || value < 0 || value > MAX_CENTS) {
+    throw new TypeError(`${name} must be non-negative safe integer cents within MAX_CENTS${nullable ? ' or null' : ''}`);
   }
 }
 
@@ -31,7 +33,7 @@ export function validateObservations(observations) {
 
 /** Missing identity fields never count as an exact match. */
 export function matchesExactAttributes(item, attributes) {
-  return IDENTITY_FIELDS.every(field => normalize(item[field]) !== '' &&
+  return (!normalize(attributes.card_name) || normalize(item.card_name) === normalize(attributes.card_name)) && IDENTITY_FIELDS.every(field => normalize(item[field]) !== '' &&
     normalize(item[field]) === normalize(attributes[field]));
 }
 
@@ -79,7 +81,7 @@ export function evaluatePricing(observations, attributes, {
     if (basis === 'item_price') return item.price_cents;
     if (item.shipping_cents == null || normalize(item.shipping_destination_zip) !== zip) return null;
     const total = item.price_cents + item.shipping_cents;
-    if (!Number.isSafeInteger(total)) throw new RangeError('Delivered cost exceeds safe integer cents');
+    if (!Number.isSafeInteger(total) || total > MAX_CENTS) throw new RangeError('Delivered cost exceeds supported cents range');
     return total;
   };
   const costs = new Map(pool.map(item => [item.item_id, cost(item)]));
@@ -104,7 +106,7 @@ export function evaluatePricing(observations, attributes, {
       item_id: item.item_id, price_cents: item.price_cents, comparison_basis: basis,
       comparison_cost_cents: amount,
       delivered_total_cents: item.shipping_cents != null && zip && normalize(item.shipping_destination_zip) === zip
-        ? (() => { const total = item.price_cents + item.shipping_cents; if (!Number.isSafeInteger(total)) throw new RangeError('Delivered cost exceeds safe integer cents'); return total; })() : null,
+        ? (() => { const total = item.price_cents + item.shipping_cents; if (!Number.isSafeInteger(total) || total > MAX_CENTS) throw new RangeError('Delivered cost exceeds supported cents range'); return total; })() : null,
       comparable_item_ids: comparables.map(other => other.item_id).sort(),
       comparable_count: comparables.length, reference_price_cents: reference,
       difference_cents: difference,

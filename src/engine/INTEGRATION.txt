@@ -1,54 +1,42 @@
-CollectWatch data-engine handoff (aibarC)
+CollectWatch — актуальная передача линии aibarC
 
-STATUS
-Internal modules ready for review, not the shared application contract. No src/contracts, app, package/lock, deployment or teammate-owned server files were changed. Adapt exports once bagdaulet-dev publishes the common contract; do not maintain competing shared types.
+СТАТУС
+Рабочая ветка work/data-engine, PR1. Код приложения был объединён с work/app@4b919b1 по явному запросу пользователя. Последующие изменения work/app и work/app-engine-integration принадлежат тиммейту и автоматически сюда не переносились.
+Публичная версия https://collectwatch.vercel.app опубликована через CLI; один реальный запрос к её /api/search прошёл. GitHub-автодеплой пока заблокирован доступом Vercel к приватному репозиторию. Main всё ещё содержит только документы, поэтому нельзя автоматически собирать его до интеграции рабочего PR.
 
-RUN (Node 22.14.0 verified; no dependencies)
-node --test tests/engine/*.test.mjs
-node src/engine/demo.mjs
-The latter is OFFLINE with a preset rule, not natural-language AI. Expected output is data/demo/expected-price-demo.json.
+НАША ГОТОВАЯ ЧАСТЬ
+- src/providers/telecom.mjs: серверный OpenAI-совместимый адаптер https://llm.telecom.kz/v1, без автоматических повторов. Ключ из серверной конфигурации, не из клиента.
+- src/providers/rule-parser.mjs: извлечение условий и строгая проверка девяти полей. Неуказанные поля null; неизвестные/неподдерживаемые ограничения — ошибка. Проверка JSON не доказывает правильность понимания каждого нового запроса.
+- src/engine/run-query.mjs: parseRule → evaluateRule; внутренний вход, не отдельный HTTP-контракт. parser_mode=provider не доказывает живую модель, поскольку тесты подставляют mock.
+- src/engine/evaluate-rule.mjs: разбивает подходящие записи на точные группы; разные версии не объединяются в одну медиану.
+- src/engine/pricing.mjs: обычный код рассчитывает цены. Аналоги выбираются до бюджетного фильтра; текущий лот исключается из своей медианы; минимум3 аналога по умолчанию. Нет риск-скоринга.
+- data/demo/charizard-psa9-source-observations.json: исходные наблюдения и происхождение.
+- data/demo/VERIFICATION.txt: независимая повторная проверка доступных источников.
 
-MODULES
-src/providers/rule-parser.mjs: parseRule(text, {complete, timeoutMs}) extracts/validates a rule. Strict validation, null unspecified fields, bounded input/output, deadline, safe errors, no silent fallback or retries. Prompt-only semantic correctness is unverified: model can return valid JSON with wrong meaning; display parsed conditions for user review.
-src/providers/telecom.mjs: createTelecomCompletion({apiKey, model, baseUrl?, fetchImpl?, maxTokens?}) returns complete for the Kazakhtelecom OpenAI-compatible gateway. Approved base URL is https://llm.telecom.kz/v1; redirects prohibited. Server-only configuration uses LLM_API_KEY, LLM_MODEL, LLM_BASE_URL. No automatic requests or retries. Model ID must come from /models; no model is guessed. User-supplied KT access PDF documents Bearer authentication, /models and /chat/completions. Mock transport tests do not prove live access.
-src/engine/evaluate-rule.mjs: evaluateRule(observations, validatedRule, options) selects matching observations and partitions exact identities. Null constraints are unrestricted, not inferred; separate grade/set/finish groups get separate baselines. Unknown identity fields excluded with warning. Uses source-observation schema, not final app schema.
-src/engine/pricing.mjs: evaluatePricing(observations, exactIdentity, options) computes leave-one-out comparisons. minComparables default 3 is an internal configurable choice pending contract confirmation. Filter budget/discount after full baseline. Explicit bundle/accessory/replica flags excluded, unknown item_type is not independently authenticated. No risk scoring.
+ПРОВАЙДЕР И ПРОВЕРКИ
+Рабочий ID: kimi-k3, ровно как вернул шлюз. Настройки: LLM_BASE_URL, LLM_MODEL, LLM_API_KEY в локальном .env или Vercel production env. Сам ключ не передавать в Git/чат/клиент. .env.example не содержит ключа.
+Kimi прошла8/8 подготовленных development-сценариев после успешной пробы; GPT OSS7/8. Это малый проверочный набор, не held-out оценка и не SLA. Результаты сохранены tests/engine/*evaluation-result.json. Дополнительные полные эксперименты не запускались.
+node --test tests/engine/*.test.mjs tests/integration/*.test.mjs
+node src/engine/demo.mjs — офлайн-пример с заранее заданными условиями, не живой AI.
+node tests/engine/live-eval.mjs — без --live не обращается к модели. При разрешённой оценке сначала один случай; автоматических повторов нет. Не запускать вместе с обычными тестами.
 
-SERVER CALL SEQUENCE (after configuration and contract adapter)
-const complete = createTelecomCompletion({apiKey: serverKey, model: serverModel});
-const rule = await parseRule(userText, {complete});
-const evaluation = evaluateRule(observations, rule, {basis:'item_price'});
-Return rule and adapted evaluation with parserMode live-llm ONLY if the real provider was called successfully. Preset demos must say preset-demo. Unsupported currencies, grade ranges or conflicting/unsupported constraints should return explicit errors; current extraction subset is intentionally limited. Live semantic evaluation remains required.
+ПОДКЛЮЧЕНИЕ ПРИЛОЖЕНИЯ
+Фактический POST /api/search принимает только {text}; сервер сам читает fixture и вызывает runQuery. Ответ содержит rule, results[{listing,peers,benchmark,delta,percent}], parserMode, dataMode, warnings. Endpoint api/search.js (Vercel) — ESM через package.json type=module.
+Запуск локально: node --env-file=.env server.mjs, по умолчанию127.0.0.1:4173. Статический сервер отдаёт только разрешённые файлы, .env/src/.git недоступны. Vercel build-static.mjs складывает ровно шесть клиентских файлов в public/. Не публиковать корень репозитория статическим python http.server вместе с .env.
+Кнопка AI-поиска Pokémon вызывает Kimi явно. Sony/Canon — отдельные синтетические примеры обычного поиска. Нельзя возвращать эти цены как реальные eBay-объявления.
+Сервер имеет лимиты размера, времени, частоты и конкурентности на один процесс. Serverless-инстансы не делят счётчик: это не общая квота гранта.
 
-DATA & OUTPUT
-Source JSON: data/demo/charizard-psa9-source-observations.json.
-Independent verification: data/demo/VERIFICATION.txt.
-Current observations are heterogeneous cached records. source_capture_time null; retrieved_date is access date, NOT original capture time. Two records including WBG350 could not be independently re-opened. No live deal or authenticity claim.
-Default item_price comparison excludes shipping and taxes. Delivered basis requires destinationZip, matching per-record ZIP and known normalized shipping_cents; observed_shipping_cents must never substitute. Unknown costs stay null and cannot pass a delivered budget filter.
-For historical fixture under $450 and at least15% below other asking-price observations: WBG350 is returned, median460, difference110, 23.91%. This is arithmetic on a curated fixture, not a verified current bargain. Removing the 15% threshold returns both350 and400; no hardcoded winner. No-match queries work.
+ОГРАНИЧЕНИЯ ДАННЫХ И РАСЧЁТА
+Набор исторический и отобран для демонстрации. retrieved_date — дата получения кэшированной страницы, не дата одновременного рыночного снимка. У всех source_capture_time=null и live_verified=false. Две записи, включая WBG350, независимо повторно открыть не удалось; они сохранены как исходные наблюдения, а не текущие предложения.
+Доставка получена для разных ZIP. observed_shipping_cents не заменяет shipping_cents. Сравнение item_price явно исключает доставку/налоги; delivered требует известную нормализованную доставку на один ZIP. Неизвестная доставка не равна0.
+350USD против медианы остальных460USD →110USD,23.91% только в историческом наборе. Без минимальной разницы запрос до450USD даёт350 и400; с минимум15% — только350. Никакой победитель не зашит в алгоритм. Исчезновение объявления не доказывает продажу. Дешевизна не является fraud score.
 
-WHAT REMAINS
-1. Shared contract publication and adapter/integration by bagdaulet-dev; align money/basis/null/error names.
-2. Real AI credentials/model through server configuration and a small live semantic evaluation; no secrets in chat/Git.
-3. Current eBay dataset verification for common date/destination or continue clearly labelled historical demo. eBay provider/monitoring wait for approved access.
-4. App, storage, Telegram and deploy belong to bagdaulet-dev. No claim these exist.
+ЧТО ОСТАЛОСЬ И КТО ДЕЛАЕТ
+1. bagdaulet-dev: интеграция PR/актуальных UI-изменений, разрешение Vercel GitHub App на приватный репозиторий, затем production main и проверка автодеплоя.
+2. aibarC: актуальный единый снимок после появления доступного источника; до этого сохраняем историческую маркировку. eBay provider и живое семантическое сопоставление реальных новых лотов не реализованы.
+3. bagdaulet-dev: сохранение охот, Telegram, общий лимит/защита публичного endpoint и фоновое расписание. Нет токена Telegram — не считать интеграцию выполненной.
+4. Команда: проверить внешние рыночные цифры перед публичным питчем; экономика в PROJECT — предположения, не измерения.
 
-INTERNAL COMPOSED ENTRYPOINT
-runQuery({text, observations, complete, timeoutMs?, pricingOptions?}) in run-query.mjs combines parser and grouping. parser_mode=provider means an injected provider was used; it does NOT assert a live model (tests inject mocks). The server owns mapping this to verified live-llm metadata. Three pipeline tests cover one computed result, no matches and invalid extraction before calculation.
-
-LIVE VALIDATION PREPARATION
-The environment checked in this session has no LLM_API_KEY or LLM_MODEL; a local git-ignored .env is now prepared with public telecom URL and empty model/key fields for user configuration. No credentials searched elsewhere or printed. Shared contract still absent from origin/main.
-The evaluator in tests/engine/live-eval.mjs requires --live and server environment configuration. First run --live --limit 1; inspect safe summary, then run remaining approved evaluation cases. No automatic retries. Full semantic reliability is not established by mock tests.
-
-ONE ACCESS CHECK
-User will enter key locally. Run from repo root: node --env-file=.env tests/engine/telecom-smoke.mjs --run
-This makes exactly one GET /models, not a generation request, and creates an ignored attempt marker before sending. No retry/list-all/probe loop. After successful access, choose an actually returned model ID and configure LLM_MODEL before a separately requested generation test. .env and attempt marker never enter Git. No API request has yet been made in this configuration task.
-
-LIVE RESULT UPDATE
-openai/gpt-oss-120b returned HTTP200 and correct full extraction in one trial (~2.1s). Subsequent8-case development run:7 passed,1 INVALID_MODEL_OUTPUT. Total9 generation calls, no retries. Local LLM_MODEL set to this model; not a claim of production stability. See tests/engine/gpt-oss-evaluation-result.json. Previous generic failure of Qwen does not establish that model is unavailable. Next improvement: constrained JSON output if supported, with safe structural diagnostics; no further live runs performed.
-
-CURRENT MODEL SELECTION
-kimi-k3 selected in local env after successful trial (~1.4s) and8/8 prepared development cases (full run~10.1s). Total9 Kimi generation calls, no retries. GPT OSS scored7/8; this small set supports a demo choice, not general accuracy or latency guarantees. Gateway model ID is used exactly as returned. See tests/engine/kimi-evaluation-result.json.
-
-APP INTEGRATION UPDATE
-Teammate branch work/app@4b919b1 merged into work/data-engine by explicit user authorization. App integration uses POST /api/search {text}; see README and src/server/search-handler.mjs. Shared Next.js contract not created: actual client shape adapted to existing static renderer. Server and UI now integrated, 35 unit/HTTP tests pass and mobile browser checks pass. One live server request verified Kimi extraction + fixture filtering. No production deployment or Telegram/monitoring performed. Existing earlier "contract absent" notes describe previous stages.
+ПОСЛЕДНИЙ ОФЛАЙН-АУДИТ
+47 локальных тестов прошли. evaluateRule теперь требует полный валидированный объект из9 полей (неприемлемы {} или неизвестные ограничения); отсутствующие условия нужно передавать явно null. Группы не объединяют противоречащие названия карточек, даже при одинаковом номере. Максимальные денежные значения ограничены MAX_CENTS=floor(Number.MAX_SAFE_INTEGER/2), чтобы сохранить точность медианы с половиной цента; цены обычного демо не изменились.
+node src/engine/validate-demo.mjs — офлайн-проверка именно текущего шестизаписного fixture; exit1 при ошибке, внешних запросов нет. data/demo/quality-audit.json содержит воспроизводимую сводку:0 структурных ошибок,8 предупреждений. Эта проверка не подтверждает доступность объявлений, истинность исходных утверждений продавца или подлинность.
