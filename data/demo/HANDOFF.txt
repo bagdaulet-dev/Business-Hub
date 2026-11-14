@@ -1,8 +1,8 @@
 CollectWatch: observations for a curated demo, retrieved 2026-11-15
 
 PRODUCT DIRECTION FOR COORDINATOR
-User proposes removing risk scoring and focusing on finding lower-priced matching items and timely alerts. Recommended MVP: no fraud probability, anomaly badge or low/medium/high risk. Retain exact matching and exclusion of wrong variants/accessories/bundles: these are relevance checks, not fraud scoring. eBay protection is conditional; never promise all risk transfers to eBay. Do not claim alerts arrive earlier than everyone else without evidence.
-Shared contracts and PROJECT/PLAN remain owned by bagdaulet-dev; integrate this scope adjustment there before implementing risk fields/UI. No app or engine implemented by this data collection task.
+User approved removing risk scoring and focusing on finding lower-priced matching items and timely alerts. Approved MVP: no fraud probability, anomaly badge or low/medium/high risk. Retain exact matching and exclusion of wrong variants/accessories/bundles: these are relevance checks, not fraud scoring. eBay protection is conditional; never promise all risk transfers to eBay. Do not claim alerts arrive earlier than everyone else without evidence.
+User explicitly authorized this scope update to PROJECT/PLAN/AGENTS in this PR. Shared contracts remain owned by bagdaulet-dev; omit risk fields/UI during integration. No app or engine implemented by this data collection task.
 
 DATA STATUS
 Six source observations, not a live eBay feed or a simultaneous market snapshot. Search/open tools returned cached pages of different ages. Availability is unverified. Prices are observed asking prices, not completed sales. Selection is curated for demonstration and is not a representative market sample.
