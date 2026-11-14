@@ -1,0 +1,34 @@
+CollectWatch data-engine handoff (aibarC)
+
+STATUS
+Internal modules ready for review, not the shared application contract. No src/contracts, app, package/lock, deployment or teammate-owned server files were changed. Adapt exports once bagdaulet-dev publishes the common contract; do not maintain competing shared types.
+
+RUN (Node 22.14.0 verified; no dependencies)
+node --test tests/engine/*.test.mjs
+node src/engine/demo.mjs
+The latter is OFFLINE with a preset rule, not natural-language AI. Expected output is data/demo/expected-price-demo.json.
+
+MODULES
+src/providers/rule-parser.mjs: parseRule(text, {complete, timeoutMs}) extracts/validates a rule. Strict validation, null unspecified fields, bounded input/output, deadline, safe errors, no silent fallback or retries. Prompt-only semantic correctness is unverified: model can return valid JSON with wrong meaning; display parsed conditions for user review.
+src/providers/anthropic.mjs: createAnthropicCompletion({apiKey, model, apiVersion?, fetchImpl?}) returns complete. Server-only use; no automatic env loading. API key and actual model ID must be supplied by server configuration, not browser input. Construction performs no requests. HTTP mocks tested; live model and account access NOT tested. API reference consulted: https://platform.claude.com/docs/en/api/messages/create and /docs/en/api/overview. Default API version is 2023-06-01; choose a compatible available model/version when configuring.
+src/engine/evaluate-rule.mjs: evaluateRule(observations, validatedRule, options) selects matching observations and partitions exact identities. Null constraints are unrestricted, not inferred; separate grade/set/finish groups get separate baselines. Unknown identity fields excluded with warning. Uses source-observation schema, not final app schema.
+src/engine/pricing.mjs: evaluatePricing(observations, exactIdentity, options) computes leave-one-out comparisons. minComparables default 3 is an internal configurable choice pending contract confirmation. Filter budget/discount after full baseline. Explicit bundle/accessory/replica flags excluded, unknown item_type is not independently authenticated. No risk scoring.
+
+SERVER CALL SEQUENCE (after configuration and contract adapter)
+const complete = createAnthropicCompletion({apiKey: serverKey, model: serverModel});
+const rule = await parseRule(userText, {complete});
+const evaluation = evaluateRule(observations, rule, {basis:'item_price'});
+Return rule and adapted evaluation with parserMode live-llm ONLY if the real provider was called successfully. Preset demos must say preset-demo. Unsupported currencies, grade ranges or conflicting/unsupported constraints should return explicit errors; current extraction subset is intentionally limited. Live semantic evaluation remains required.
+
+DATA & OUTPUT
+Source JSON: data/demo/charizard-psa9-source-observations.json.
+Independent verification: data/demo/VERIFICATION.txt.
+Current observations are heterogeneous cached records. source_capture_time null; retrieved_date is access date, NOT original capture time. Two records including WBG350 could not be independently re-opened. No live deal or authenticity claim.
+Default item_price comparison excludes shipping and taxes. Delivered basis requires destinationZip, matching per-record ZIP and known normalized shipping_cents; observed_shipping_cents must never substitute. Unknown costs stay null and cannot pass a delivered budget filter.
+For historical fixture under $450 and at least15% below other asking-price observations: WBG350 is returned, median460, difference110, 23.91%. This is arithmetic on a curated fixture, not a verified current bargain. Removing the 15% threshold returns both350 and400; no hardcoded winner. No-match queries work.
+
+WHAT REMAINS
+1. Shared contract publication and adapter/integration by bagdaulet-dev; align money/basis/null/error names.
+2. Real AI credentials/model through server configuration and a small live semantic evaluation; no secrets in chat/Git.
+3. Current eBay dataset verification for common date/destination or continue clearly labelled historical demo. eBay provider/monitoring wait for approved access.
+4. App, storage, Telegram and deploy belong to bagdaulet-dev. No claim these exist.
