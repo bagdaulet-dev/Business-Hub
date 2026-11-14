@@ -4,7 +4,7 @@
   "buildCommand": "node build-static.mjs",
   "outputDirectory": "public",
   "functions": {
-    "api/search.mjs": {
+    "api/search.js": {
       "maxDuration": 30,
       "includeFiles": "data/demo/charizard-psa9-source-observations.json"
     }
