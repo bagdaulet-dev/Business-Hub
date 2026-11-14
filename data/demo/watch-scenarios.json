@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "data_mode": "simulation",
+  "delay_ms": 10000,
+  "purpose": "Fixed synthetic arrivals for a local watch/notification demonstration; not real eBay inventory or subscription billing.",
+  "matching_policy": "Evaluate each fixed listing against the saved query without modifying price, attributes or country. Notify only on a match. Unknown shipping must not be treated as zero delivered cost.",
+  "scenarios": [
+    {
+      "id": "demo-watch-charizard-psa9-us-arrival",
+      "listing": {
+        "synthetic": true,
+        "data_mode": "simulation",
+        "live_verified": false,
+        "url": null,
+        "currency": "USD",
+        "shipping_cents": null,
+        "buying_option": "FIXED_PRICE",
+        "item_location_country_code": "US",
+        "item_location_text": "United States (simulated location)",
+        "image_url": null,
+        "id": "demo-watch-charizard-psa9-us",
+        "title": "[Simulation] Charizard ex 199/165 PSA 9 English 2023",
+        "price_cents": 28000,
+        "model_year": 2023,
+        "category": "pokemon",
+        "card_name": "Charizard ex",
+        "card_number": "199/165",
+        "set_name": "Scarlet & Violet 151",
+        "language": "English",
+        "grader": "PSA",
+        "grade": 9,
+        "condition": "Graded",
+        "finish": "Special Illustration Rare Holo",
+        "product_id": "charizard-ex-199-165-psa9",
+        "attributes": {
+          "card_name": "Charizard ex",
+          "card_number": "199/165",
+          "set_name": "Scarlet & Violet 151",
+          "language": "English",
+          "grader": "PSA",
+          "grade": 9,
+          "finish": "Special Illustration Rare Holo"
+        }
+      }
+    },
+    {
+      "id": "demo-watch-sony-wh1000xm5-us-arrival",
+      "listing": {
+        "synthetic": true,
+        "data_mode": "simulation",
+        "live_verified": false,
+        "url": null,
+        "currency": "USD",
+        "shipping_cents": null,
+        "buying_option": "FIXED_PRICE",
+        "item_location_country_code": "US",
+        "item_location_text": "United States (simulated location)",
+        "image_url": null,
+        "id": "demo-watch-sony-wh1000xm5-us",
+        "title": "[Simulation] Sony WH-1000XM5 Black New",
+        "price_cents": 18000,
+        "model_year": 2022,
+        "category": "headphones",
+        "brand": "Sony",
+        "model": "WH-1000XM5",
+        "color": "Black",
+        "condition": "New",
+        "configuration": "headphones",
+        "product_id": "sony-wh1000xm5",
+        "attributes": {
+          "condition": "New",
+          "color": "Black",
+          "configuration": "headphones"
+        }
+      }
+    },
+    {
+      "id": "demo-watch-canon-r50-us-arrival",
+      "listing": {
+        "synthetic": true,
+        "data_mode": "simulation",
+        "live_verified": false,
+        "url": null,
+        "currency": "USD",
+        "shipping_cents": null,
+        "buying_option": "FIXED_PRICE",
+        "item_location_country_code": "US",
+        "item_location_text": "United States (simulated location)",
+        "image_url": null,
+        "id": "demo-watch-canon-r50-us",
+        "title": "[Simulation] Canon EOS R50 Black New Body Only",
+        "price_cents": 60000,
+        "model_year": 2023,
+        "category": "camera",
+        "brand": "Canon",
+        "model": "EOS R50",
+        "color": "Black",
+        "condition": "New",
+        "configuration": "body_only",
+        "product_id": "canon-eos-r50",
+        "attributes": {
+          "condition": "New",
+          "color": "Black",
+          "configuration": "body_only"
+        }
+      }
+    }
+  ]
+}
