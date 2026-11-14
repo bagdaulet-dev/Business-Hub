@@ -9,7 +9,8 @@
     "Cache age is reported verbatim by the web source; exact capture timestamp is unknown.",
     "Shipping destinations differ; shipping_cents is intentionally null for a common-destination calculation.",
     "Seller feedback and certificate numbers are source claims, not independent validation.",
-    "WBG observation was supplied by coordinating agent; this writing agent did not independently open that source."
+    "WBG observation was supplied by coordinating agent; this writing agent did not independently open that source.",
+    "Item locations were separately checked on 2026-11-15; four cached pages identify US, two unavailable sources remain null. This enrichment does not refresh the original price observations or prove live stock."
   ],
   "observations": [
     {
@@ -42,7 +43,16 @@
       "finish": "Special Illustration Rare Holo",
       "image_url": null,
       "source_capture_time": null,
-      "card_name": "Charizard ex"
+      "card_name": "Charizard ex",
+      "item_location_country_code": null,
+      "item_location_text": null,
+      "item_location_evidence": {
+        "source_url": "https://www.ebay.com/itm/318895173729",
+        "retrieved_date": "2026-11-15",
+        "cache_age": null,
+        "evidence_type": "unavailable",
+        "evidence_excerpt": null
+      }
     },
     {
       "item_id": "377243146406",
@@ -74,7 +84,16 @@
       "finish": "Special Illustration Rare Holo",
       "image_url": null,
       "source_capture_time": null,
-      "card_name": "Charizard ex"
+      "card_name": "Charizard ex",
+      "item_location_country_code": "US",
+      "item_location_text": "Uniontown, PA, United States",
+      "item_location_evidence": {
+        "source_url": "https://www.ebay.com/itm/377243146406",
+        "retrieved_date": "2026-11-15",
+        "cache_age": "5 days ago",
+        "evidence_type": "cached_listing_located_in_field",
+        "evidence_excerpt": "Located in: Uniontown, PA, United States"
+      }
     },
     {
       "item_id": "127961223460",
@@ -106,7 +125,16 @@
       "finish": "Special Illustration Rare Holo",
       "image_url": null,
       "source_capture_time": null,
-      "card_name": "Charizard ex"
+      "card_name": "Charizard ex",
+      "item_location_country_code": "US",
+      "item_location_text": "College Station, TX, United States",
+      "item_location_evidence": {
+        "source_url": "https://www.ebay.com/itm/127961223460",
+        "retrieved_date": "2026-11-15",
+        "cache_age": "2 months ago",
+        "evidence_type": "cached_listing_located_in_field",
+        "evidence_excerpt": "Located in: College Station, TX, United States"
+      }
     },
     {
       "item_id": "307004951111",
@@ -138,7 +166,16 @@
       "finish": "Special Illustration Rare Holo",
       "image_url": null,
       "source_capture_time": null,
-      "card_name": "Charizard ex"
+      "card_name": "Charizard ex",
+      "item_location_country_code": "US",
+      "item_location_text": "Philadelphia, PA, United States",
+      "item_location_evidence": {
+        "source_url": "https://www.ebay.com/itm/307004951111",
+        "retrieved_date": "2026-11-15",
+        "cache_age": "2 weeks ago",
+        "evidence_type": "cached_listing_located_in_field",
+        "evidence_excerpt": "Located in: Philadelphia, PA, United States"
+      }
     },
     {
       "item_id": "137285300555",
@@ -170,7 +207,16 @@
       "finish": "Special Illustration Rare Holo",
       "image_url": null,
       "source_capture_time": null,
-      "card_name": "Charizard ex"
+      "card_name": "Charizard ex",
+      "item_location_country_code": "US",
+      "item_location_text": "Salt Lake City, UT, United States",
+      "item_location_evidence": {
+        "source_url": "https://www.ebay.com/itm/137285300555",
+        "retrieved_date": "2026-11-15",
+        "cache_age": "last month",
+        "evidence_type": "cached_listing_located_in_field",
+        "evidence_excerpt": "Located in: Salt Lake City, UT, United States"
+      }
     },
     {
       "item_id": "900054604971",
@@ -202,7 +248,16 @@
       "finish": "Special Illustration Rare Holo",
       "image_url": null,
       "source_capture_time": null,
-      "card_name": "Charizard ex"
+      "card_name": "Charizard ex",
+      "item_location_country_code": null,
+      "item_location_text": null,
+      "item_location_evidence": {
+        "source_url": "https://www.ebay.com/p/17062924371?iid=900054604971",
+        "retrieved_date": "2026-11-15",
+        "cache_age": null,
+        "evidence_type": "unavailable",
+        "evidence_excerpt": null
+      }
     }
   ]
 }

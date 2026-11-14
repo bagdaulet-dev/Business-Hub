@@ -1,0 +1,18 @@
+{
+  "retrieved_date": "2026-11-15",
+  "year_semantics": "Model introduction year, not manufacture year of an individual item",
+  "models": [
+    {
+      "model": "Sony WH-1000XM5",
+      "model_year": 2022,
+      "source_url": "https://sony.mediaroom.com/2022-05-12-Sony-Electronics-Unveils-New-Immersive-Listening-Experience-with-Newest-Industry-leading-1-Noise-Canceling-WH-1000XM5-Headphones",
+      "evidence": "Manufacturer announcement dated 2022-05-12."
+    },
+    {
+      "model": "Canon EOS R50",
+      "model_year": 2023,
+      "source_url": "https://global.canon/en/c-museum/product/dslr906.html",
+      "evidence": "Canon Camera Museum lists Marketed March 2023."
+    }
+  ]
+}

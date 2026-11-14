@@ -1,0 +1,276 @@
+{
+  "status": "Expected fixture behavior only; runtime country filtering is NOT implemented by this artifact",
+  "display_policy": "fixed-price rows excluding explicitly out-of-stock snapshots; unknown country retained only with unrestricted geography. Canon display eligible does not imply median eligible.",
+  "countries_semantics": "[] explicitly means all countries; absent override means AI countries or all if none",
+  "cases": [
+    {
+      "product": "sony",
+      "countries": [],
+      "expected_count": 8,
+      "expected_item_ids": [
+        "377184719616",
+        "156530320468",
+        "187722965921",
+        "236568989372",
+        "225935396065",
+        "277582040492",
+        "356137774785",
+        "205703263420"
+      ],
+      "expected_prices_cents": [
+        18400,
+        19900,
+        19900,
+        21880,
+        24999,
+        27995,
+        32201,
+        45341
+      ]
+    },
+    {
+      "product": "sony",
+      "countries": [
+        "US"
+      ],
+      "expected_count": 6,
+      "expected_item_ids": [
+        "377184719616",
+        "156530320468",
+        "187722965921",
+        "236568989372",
+        "225935396065",
+        "277582040492"
+      ],
+      "expected_prices_cents": [
+        18400,
+        19900,
+        19900,
+        21880,
+        24999,
+        27995
+      ]
+    },
+    {
+      "product": "sony",
+      "countries": [
+        "JP"
+      ],
+      "expected_count": 2,
+      "expected_item_ids": [
+        "356137774785",
+        "205703263420"
+      ],
+      "expected_prices_cents": [
+        32201,
+        45341
+      ]
+    },
+    {
+      "product": "sony",
+      "countries": [
+        "US",
+        "JP"
+      ],
+      "expected_count": 8,
+      "expected_item_ids": [
+        "377184719616",
+        "156530320468",
+        "187722965921",
+        "236568989372",
+        "225935396065",
+        "277582040492",
+        "356137774785",
+        "205703263420"
+      ],
+      "expected_prices_cents": [
+        18400,
+        19900,
+        19900,
+        21880,
+        24999,
+        27995,
+        32201,
+        45341
+      ]
+    },
+    {
+      "product": "sony",
+      "countries": [
+        "KR"
+      ],
+      "expected_count": 0,
+      "expected_item_ids": [],
+      "expected_prices_cents": []
+    },
+    {
+      "product": "canon",
+      "countries": [],
+      "expected_count": 5,
+      "expected_item_ids": [
+        "334893883260",
+        "196067818141",
+        "335609897330",
+        "115835513881",
+        "295638243466"
+      ],
+      "expected_prices_cents": [
+        64995,
+        67999,
+        67999,
+        75563,
+        99900
+      ]
+    },
+    {
+      "product": "canon",
+      "countries": [
+        "US"
+      ],
+      "expected_count": 3,
+      "expected_item_ids": [
+        "334893883260",
+        "196067818141",
+        "335609897330"
+      ],
+      "expected_prices_cents": [
+        64995,
+        67999,
+        67999
+      ]
+    },
+    {
+      "product": "canon",
+      "countries": [
+        "JP"
+      ],
+      "expected_count": 1,
+      "expected_item_ids": [
+        "115835513881"
+      ],
+      "expected_prices_cents": [
+        75563
+      ]
+    },
+    {
+      "product": "canon",
+      "countries": [
+        "US",
+        "JP"
+      ],
+      "expected_count": 4,
+      "expected_item_ids": [
+        "334893883260",
+        "196067818141",
+        "335609897330",
+        "115835513881"
+      ],
+      "expected_prices_cents": [
+        64995,
+        67999,
+        67999,
+        75563
+      ]
+    },
+    {
+      "product": "canon",
+      "countries": [
+        "KR"
+      ],
+      "expected_count": 1,
+      "expected_item_ids": [
+        "295638243466"
+      ],
+      "expected_prices_cents": [
+        99900
+      ]
+    },
+    {
+      "product": "charizard",
+      "countries": [],
+      "expected_count": 6,
+      "expected_item_ids": [
+        "900054604971",
+        "318895173729",
+        "377243146406",
+        "127961223460",
+        "307004951111",
+        "137285300555"
+      ],
+      "expected_prices_cents": [
+        35000,
+        40000,
+        45999,
+        46000,
+        50000,
+        60000
+      ]
+    },
+    {
+      "product": "charizard",
+      "countries": [
+        "US"
+      ],
+      "expected_count": 4,
+      "expected_item_ids": [
+        "377243146406",
+        "127961223460",
+        "307004951111",
+        "137285300555"
+      ],
+      "expected_prices_cents": [
+        45999,
+        46000,
+        50000,
+        60000
+      ]
+    },
+    {
+      "product": "charizard",
+      "countries": [
+        "JP"
+      ],
+      "expected_count": 0,
+      "expected_item_ids": [],
+      "expected_prices_cents": []
+    },
+    {
+      "product": "charizard",
+      "countries": [
+        "US",
+        "JP"
+      ],
+      "expected_count": 4,
+      "expected_item_ids": [
+        "377243146406",
+        "127961223460",
+        "307004951111",
+        "137285300555"
+      ],
+      "expected_prices_cents": [
+        45999,
+        46000,
+        50000,
+        60000
+      ]
+    },
+    {
+      "product": "charizard",
+      "countries": [
+        "KR"
+      ],
+      "expected_count": 0,
+      "expected_item_ids": [],
+      "expected_prices_cents": []
+    }
+  ],
+  "sony_us_price_example": {
+    "item_id": "377184719616",
+    "item_price_cents": 18400,
+    "other_count": 5,
+    "median_cents": 21880,
+    "difference_cents": 3480,
+    "below_sample_median_pct": 15.9,
+    "scope": "historical advertised model/condition/color, US item locations; warranty equivalence unverified; no shipping/tax"
+  }
+}
