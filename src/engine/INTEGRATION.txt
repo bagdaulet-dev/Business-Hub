@@ -46,3 +46,6 @@ This makes exactly one GET /models, not a generation request, and creates an ign
 
 LIVE RESULT UPDATE
 openai/gpt-oss-120b returned HTTP200 and correct full extraction in one trial (~2.1s). Subsequent8-case development run:7 passed,1 INVALID_MODEL_OUTPUT. Total9 generation calls, no retries. Local LLM_MODEL set to this model; not a claim of production stability. See tests/engine/gpt-oss-evaluation-result.json. Previous generic failure of Qwen does not establish that model is unavailable. Next improvement: constrained JSON output if supported, with safe structural diagnostics; no further live runs performed.
+
+CURRENT MODEL SELECTION
+kimi-k3 selected in local env after successful trial (~1.4s) and8/8 prepared development cases (full run~10.1s). Total9 Kimi generation calls, no retries. GPT OSS scored7/8; this small set supports a demo choice, not general accuracy or latency guarantees. Gateway model ID is used exactly as returned. See tests/engine/kimi-evaluation-result.json.
