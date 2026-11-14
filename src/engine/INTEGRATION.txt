@@ -32,3 +32,10 @@ WHAT REMAINS
 2. Real AI credentials/model through server configuration and a small live semantic evaluation; no secrets in chat/Git.
 3. Current eBay dataset verification for common date/destination or continue clearly labelled historical demo. eBay provider/monitoring wait for approved access.
 4. App, storage, Telegram and deploy belong to bagdaulet-dev. No claim these exist.
+
+INTERNAL COMPOSED ENTRYPOINT
+runQuery({text, observations, complete, timeoutMs?, pricingOptions?}) in run-query.mjs combines parser and grouping. parser_mode=provider means an injected provider was used; it does NOT assert a live model (tests inject mocks). The server owns mapping this to verified live-llm metadata. Three pipeline tests cover one computed result, no matches and invalid extraction before calculation.
+
+LIVE VALIDATION PREPARATION
+The environment checked in this session has no ANTHROPIC_API_KEY or ANTHROPIC_MODEL; no project .env file was present. No credentials searched elsewhere or printed. Shared contract still absent from origin/main.
+The evaluator in tests/engine/live-eval.mjs requires --live and server environment configuration. First run --live --limit 1; inspect safe summary, then run remaining approved evaluation cases. No automatic retries. Full semantic reliability is not established by mock tests.
