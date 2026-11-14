@@ -12,7 +12,7 @@ export function matchesQuery(listing, query) {
 }
 
 function sameProduct(left, right) {
-  if (left.sample !== right.sample || left.currency !== right.currency) return false;
+  if (left.sample !== right.sample || left.currency !== right.currency || left.model_year !== right.model_year) return false;
   if (left.comparison_group || right.comparison_group) {
     return left.comparison_group === right.comparison_group && left.variant === right.variant;
   }
@@ -20,11 +20,12 @@ function sameProduct(left, right) {
   return fields.every(field => left[field] === right[field]);
 }
 
-export function searchListings(listings, { query, grade, budget }) {
+export function searchListings(listings, { query, grade, budget, year }) {
   const limit = budget === '' ? Infinity : Math.round(Number(budget) * 100);
 
   return listings.filter(listing => {
     return matchesQuery(listing, query)
+      && (!year || listing.model_year === Number(year))
       && (!grade || grade === `${listing.grader} ${listing.grade}`)
       && listing.price_cents <= limit;
   }).sort((a, b) => a.price_cents - b.price_cents).map(listing => {
