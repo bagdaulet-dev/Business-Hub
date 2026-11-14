@@ -1,0 +1,21 @@
+CollectWatch: observations for a curated demo, retrieved 2026-11-15
+
+PRODUCT DIRECTION FOR COORDINATOR
+User proposes removing risk scoring and focusing on finding lower-priced matching items and timely alerts. Recommended MVP: no fraud probability, anomaly badge or low/medium/high risk. Retain exact matching and exclusion of wrong variants/accessories/bundles: these are relevance checks, not fraud scoring. eBay protection is conditional; never promise all risk transfers to eBay. Do not claim alerts arrive earlier than everyone else without evidence.
+Shared contracts and PROJECT/PLAN remain owned by bagdaulet-dev; integrate this scope adjustment there before implementing risk fields/UI. No app or engine implemented by this data collection task.
+
+DATA STATUS
+Six source observations, not a live eBay feed or a simultaneous market snapshot. Search/open tools returned cached pages of different ages. Availability is unverified. Prices are observed asking prices, not completed sales. Selection is curated for demonstration and is not a representative market sample.
+All entries describe Charizard ex 199/165, Scarlet & Violet 151, English, PSA 9. Listing claims are not independent grading/authenticity verification. Shipping observations refer to different ZIP codes; normalized shipping and delivered totals must remain null until one common destination is checked. Photos are not downloaded; missing fields remain null.
+
+DEMO CALCULATION
+Item-price-only illustration (shipping/tax excluded): 350, 400, 459.99, 460, 500, 600 USD. For the 350 USD entry the median of the five other item prices is 460 USD; difference 110 USD or 23.91%. This demonstrates arithmetic on historical observations, not a current saving or market discount. Never rank cached delivered totals as comparable.
+Do not insert a manually altered low price. Do not hardcode one winner: filters and sorting determine matches; zero, one or multiple matches are valid. A cheapest-result presentation can highlight the first sorted result and expose alternatives.
+
+REMAINING VALIDATION
+Open individual listings in a current buyer session; verify still available, matching variant, intact holder/description caveats and a single US shipping destination; record actual capture times and photos if usable. Replace observations if ended/unverifiable, without inventing data. Only then call the set a contemporaneous snapshot.
+The JSON is a research staging format, not the shared application contract. Coordinator owns that contract.
+
+PROTECTION SOURCES
+https://www.ebay.com/authenticity-guarantee/tradingcards
+https://www.ebay.com/help/policies/overview/ebay-policies?id=4210
