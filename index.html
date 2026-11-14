@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#110f21">
+  <link rel="icon" href="data:,">
+  <title>CollectWatch — поиск коллекционных карточек</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+  <div class="shell">
+    <header class="top">
+      <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"></span>CollectWatch</a>
+      <a class="snapshot" href="#data"><span></span> Данные демо</a>
+    </header>
+    <main>
+      <section class="hero" aria-labelledby="title">
+        <div class="intro">
+          <h1 id="title">Найди свою<br>карточку<span>.</span></h1>
+          <p>Сравни цены одной и той же версии Pokémon-карточки в сохранённых объявлениях eBay.</p>
+        </div>
+        <div class="display" aria-label="Иллюстрация карточки Charizard ex">
+          <div class="halo"></div>
+          <div class="slab">
+            <div class="slab-label"><span>Charizard ex<br><small>Scarlet &amp; Violet 151</small></span><b>PSA 9</b></div>
+            <div class="art" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="slab-foot"><span>Charizard ex</span><span>199 / 165</span></div>
+          </div>
+        </div>
+      </section>
+      <form id="hunt" class="hunt">
+        <label class="query">Карточка<input id="query" name="query" type="search" value="Charizard ex 199/165" placeholder="Например, Charizard ex" maxlength="100"></label>
+        <label>Грейд<select name="grade" id="grade"><option value="">Любой</option><option>PSA 8</option><option selected>PSA 9</option><option>PSA 10</option></select></label>
+        <label>Бюджет, $<input id="budget" name="budget" type="number" value="500" min="0" max="1000000" step="0.01" inputmode="decimal" placeholder="Любой"></label>
+        <button class="primary" type="submit"><span aria-hidden="true">⌕</span> Найти</button>
+        <p class="basis">Бюджет учитывает цену объявления без доставки и налогов.</p>
+      </form>
+      <section class="results" id="results" aria-labelledby="results-title">
+        <div class="results-head">
+          <div><h2 id="results-title" tabindex="-1">Результаты поиска</h2><p id="status" role="status">Загружаем объявления…</p></div>
+          <button type="button" id="reset" class="secondary" hidden>Сбросить</button>
+        </div>
+        <div id="findings"></div>
+      </section>
+    </main>
+    <footer id="data">
+      <strong>Об источниках</strong>
+      <p>Команда собрала наблюдения 15 ноября 2026 года из сохранённых страниц eBay разного возраста. Это цены предложений. Текущая доступность не подтверждена. Доставка для общего ZIP-кода не проверена.</p>
+    </footer>
+  </div>
+</body>
+</html>
