@@ -49,3 +49,6 @@ openai/gpt-oss-120b returned HTTP200 and correct full extraction in one trial (~
 
 CURRENT MODEL SELECTION
 kimi-k3 selected in local env after successful trial (~1.4s) and8/8 prepared development cases (full run~10.1s). Total9 Kimi generation calls, no retries. GPT OSS scored7/8; this small set supports a demo choice, not general accuracy or latency guarantees. Gateway model ID is used exactly as returned. See tests/engine/kimi-evaluation-result.json.
+
+APP INTEGRATION UPDATE
+Teammate branch work/app@4b919b1 merged into work/data-engine by explicit user authorization. App integration uses POST /api/search {text}; see README and src/server/search-handler.mjs. Shared Next.js contract not created: actual client shape adapted to existing static renderer. Server and UI now integrated, 35 unit/HTTP tests pass and mobile browser checks pass. One live server request verified Kimi extraction + fixture filtering. No production deployment or Telegram/monitoring performed. Existing earlier "contract absent" notes describe previous stages.
