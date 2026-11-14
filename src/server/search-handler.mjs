@@ -4,20 +4,21 @@ import {runQuery} from '../engine/run-query.mjs';
 const fixtureUrl = new URL('../../data/demo/charizard-psa9-source-observations.json', import.meta.url);
 const MAX_BODY_BYTES = 8192;
 const messages = {
-  INVALID_QUERY:'Введите запрос длиной от 1 до 2000 символов.',
-  INVALID_JSON:'Тело запроса должно быть JSON с единственным полем text.',
-  UNSUPPORTED_MEDIA_TYPE:'Используйте Content-Type: application/json.',
-  BODY_TOO_LARGE:'Запрос слишком большой.',
-  REQUEST_TIMEOUT:'Время получения запроса истекло.',
-  METHOD_NOT_ALLOWED:'Используйте POST.',
-  TOO_MANY_REQUESTS:'Лимит запросов достигнут. Повторите позже.',
-  PROVIDER_NOT_CONFIGURED:'AI-провайдер пока не настроен.',
-  UNSUPPORTED_QUERY:'Условия запроса пока не поддерживаются. Упростите запрос.',
-  QUERY_NEEDS_CARD:'Укажите название или номер карточки.',
-  PROVIDER_TIMEOUT:'AI не ответил вовремя. Повторите позже.',
-  PROVIDER_UNAVAILABLE:'AI-провайдер временно недоступен.',
-  INVALID_MODEL_OUTPUT:'AI вернул неподдерживаемый ответ. Повторите позже.',
-  INTERNAL_ERROR:'Не удалось обработать запрос.',
+  INVALID_QUERY: 'Enter a search between 1 and 2,000 characters.',
+  INVALID_JSON: 'Send JSON containing text and, optionally, modelYear.',
+  INVALID_MODEL_YEAR: 'Model year must be a four-digit integer.',
+  UNSUPPORTED_MEDIA_TYPE: 'Use Content-Type: application/json.',
+  BODY_TOO_LARGE: 'The request is too large.',
+  REQUEST_TIMEOUT: 'The request timed out.',
+  METHOD_NOT_ALLOWED: 'Use POST.',
+  TOO_MANY_REQUESTS: 'The request limit was reached. Try again later.',
+  PROVIDER_NOT_CONFIGURED: 'The AI provider is unavailable on this server.',
+  UNSUPPORTED_QUERY: 'AI search does not support those filters.',
+  QUERY_NEEDS_CARD: 'Enter a Pokémon card name or number.',
+  PROVIDER_TIMEOUT: 'The AI provider timed out.',
+  PROVIDER_UNAVAILABLE: 'The AI provider is temporarily unavailable.',
+  INVALID_MODEL_OUTPUT: 'The AI provider returned an invalid response.',
+  INTERNAL_ERROR: 'The request could not be processed.',
 };
 
 export function sendJson(res, status, value) {
@@ -90,11 +91,17 @@ export function createSearchHandler({complete,requestTimeoutMs=5000,providerTime
       let input;
       try{input=JSON.parse(raw);}catch{failure(res,400,'INVALID_JSON');return;}
       if(!input||Array.isArray(input)||typeof input!=='object'||
-        Object.keys(input).length!==1||!Object.hasOwn(input,'text')){failure(res,400,'INVALID_JSON');return;}
+        !Object.hasOwn(input,'text')||Object.keys(input).some(key=>key!=='text'&&key!=='modelYear')){failure(res,400,'INVALID_JSON');return;}
       if(typeof input.text!=='string'||!input.text.trim()||input.text.length>2000){failure(res,400,'INVALID_QUERY');return;}
+      const modelYear=input.modelYear;
+      if(Object.hasOwn(input,'modelYear')&&(!Number.isInteger(modelYear)||modelYear<1000||modelYear>9999)){
+        failure(res,400,'INVALID_MODEL_YEAR');return;
+      }
       if(typeof complete!=='function'){failure(res,503,'PROVIDER_NOT_CONFIGURED');return;}
       // Read once per accepted request, from the server-owned path. No client paths.
-      const {observations}=JSON.parse(await readFile(fixtureUrl,'utf8'));
+      const {observations: fixture,model_year}=JSON.parse(await readFile(fixtureUrl,'utf8'));
+      const observations=modelYear===undefined||modelYear===model_year
+        ? fixture.map(item=>({...item,model_year})) : [];
       const beforeCall=Date.now();attempts=attempts.filter(time=>beforeCall-time<60000);
       // Recheck after asynchronous body read: concurrent requests can consume the last slot.
       if(attempts.length>=maxAttemptsPerMinute){res.setHeader('retry-after','60');failure(res,429,'TOO_MANY_REQUESTS');return;}
@@ -106,7 +113,7 @@ export function createSearchHandler({complete,requestTimeoutMs=5000,providerTime
         peers:finding.comparable_item_ids.map(id=>byId.get(id)).sort((a,b)=>a.price_cents-b.price_cents||a.item_id.localeCompare(b.item_id)),
         benchmark:finding.reference_price_cents,delta:finding.difference_cents,percent:finding.below_sample_median_pct,
       }))).sort((a,b)=>a.listing.price_cents-b.listing.price_cents||a.listing.item_id.localeCompare(b.listing.item_id));
-      sendJson(res,200,{rule:output.rule,results,parserMode:'live-llm',dataMode:'historical_observations',
+      sendJson(res,200,{rule:output.rule,results,...(modelYear===undefined?{}:{modelYear}),parserMode:'live-llm',dataMode:'historical_observations',
         warnings:[...new Set([...output.warnings,...output.groups.flatMap(g=>g.warnings),
           'Historical cached observations from different dates; current availability is unverified.'])]});
     }catch(error){

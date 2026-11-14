@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en-US">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#110f21">
   <link rel="icon" href="data:,">
-  <title>CollectWatch — поиск и сравнение товаров</title>
+  <title>CollectWatch | Search and compare products</title>
   <meta name="collectwatch-explain-endpoint" content="">
   <link rel="stylesheet" href="./style.css">
   <script type="module" src="./app.mjs"></script>
@@ -15,48 +15,67 @@
   <div class="shell">
     <header class="top">
       <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"></span>CollectWatch</a>
-      <a class="snapshot" href="#data"><span></span> Данные демо</a>
+      <a class="snapshot" href="#data"><span></span> About the demo</a>
     </header>
     <main>
       <section class="hero" aria-labelledby="title">
         <div class="intro">
-          <h1 id="title">Найди свою<br>вещь<span>.</span></h1>
-          <p>Сравни цены и характеристики, чтобы выбрать качественную вещь под свой бюджет.</p>
+          <h1 id="title">Find your<br>next deal<span>.</span></h1>
+          <p>Find the model you want and compare prices before you buy.</p>
         </div>
         <div class="display" aria-hidden="true">
           <div class="halo"></div>
           <div class="shelf">
-            <div class="showcase showcase-a"><div class="headphones"></div><span>Наушники</span></div>
-            <div class="showcase showcase-b"><div class="camera"></div><span>Камеры</span></div>
-            <div class="showcase showcase-c"><div class="watch"></div><span>Часы</span></div>
+            <div class="showcase showcase-a"><div class="headphones"></div><span>Headphones</span></div>
+            <div class="showcase showcase-b"><div class="camera"></div><span>Cameras</span></div>
+            <div class="showcase showcase-c"><div class="watch"></div><span>Watches</span></div>
           </div>
         </div>
       </section>
       <form id="hunt" class="hunt">
-        <label class="query">Что ищешь?<input id="query" name="query" type="search" placeholder="Название товара или модель" maxlength="1500"></label>
-        <label>Бюджет, $<input id="budget" name="budget" type="number" min="0" max="1000000" step="0.01" inputmode="decimal" placeholder="Любой"></label>
-        <button class="primary" type="submit"><span aria-hidden="true">⌕</span> Найти</button>
-        <button type="submit" class="secondary" name="mode" value="ai">AI-поиск Pokémon · Kimi</button>
-        <label id="grade-field" hidden>Грейд карточки<select name="grade" id="grade" disabled><option value="">Любой</option><option>PSA 8</option><option>PSA 9</option><option>PSA 10</option></select></label>
-        <div class="examples"><span>Попробуй</span>
-          <button type="button" class="secondary" data-query="Sony WH-1000XM5">Наушники Sony</button>
-          <button type="button" class="secondary" data-query="Canon EOS R50">Камера Canon</button>
-          <button type="button" class="secondary" data-query="Charizard ex 199/165">Charizard ex</button>
-        </div>
-        <p class="basis">Бюджет учитывает цену без доставки и налогов. AI-поиск понимает условия карточек Pokémon. Sony и Canon доступны в обычном поиске.</p>
-        <p id="parsed-rule" role="status"></p>
+        <label class="query">What are you looking for?
+          <input id="query" name="query" type="search" placeholder="Product name or model" maxlength="1500" required>
+        </label>
+        <label>Model year
+          <input id="year" name="year" type="text" inputmode="numeric" pattern="[1-9][0-9]{3}" maxlength="4" placeholder="Any year" title="Enter a four-digit model year">
+        </label>
+        <label>Max price (USD)
+          <input id="budget" name="budget" type="number" min="0" max="1000000" step="0.01" inputmode="decimal" placeholder="Any price">
+        </label>
+        <label id="grade-field" hidden>Card grade
+          <select name="grade" id="grade" disabled><option value="">Any grade</option><option>PSA 8</option><option>PSA 9</option><option>PSA 10</option></select>
+        </label>
+        <button class="primary" type="submit" id="search" disabled><span aria-hidden="true">⌕</span> Search</button>
+        <button class="secondary ai-search" type="submit" id="ai-search" disabled>Search Pokémon with AI</button>
+        <p class="basis">Year and budget are optional. Prices exclude shipping and tax. AI search uses archived Pokémon listings.</p>
+        <p id="load-error" class="basis" role="alert" hidden></p>
       </form>
-      <section class="results" id="results" aria-labelledby="results-title">
-        <div class="results-head">
-          <div><h2 id="results-title" tabindex="-1">Результаты поиска</h2><p id="status" role="status">Загружаем объявления…</p></div>
-          <button type="button" id="reset" class="secondary" hidden>Сбросить</button>
+      <section class="examples" aria-labelledby="examples-title">
+        <h2 id="examples-title">Try an example</h2>
+        <div class="example-grid">
+          <button type="button" class="example" data-query="Sony WH-1000XM5" data-year="2022">
+            <span class="example-category">Headphones</span><strong>Sony WH-1000XM5</strong><span class="example-year">2022</span>
+          </button>
+          <button type="button" class="example" data-query="Canon EOS R50" data-year="2023">
+            <span class="example-category">Camera</span><strong>Canon EOS R50</strong><span class="example-year">2023</span>
+          </button>
+          <button type="button" class="example" data-query="Charizard ex 199/165" data-year="2023">
+            <span class="example-category">Trading card</span><strong>Charizard ex</strong><span class="example-year">2023</span>
+          </button>
         </div>
+      </section>
+      <section class="results" id="results" hidden aria-labelledby="results-title">
+        <div class="results-head">
+          <div><h2 id="results-title" tabindex="-1">Search results</h2><p id="status" role="status"></p></div>
+          <button type="button" id="reset" class="secondary">Clear search</button>
+        </div>
+        <p id="parsed-rule" role="status" hidden></p>
         <div id="findings"></div>
       </section>
     </main>
     <footer id="data">
-      <strong>Об источниках</strong>
-      <p>Цены на наушники Sony и камеру Canon смоделированы для демо. Цены на Charizard взяты из сохранённых объявлений eBay, полученных 15 ноября 2026 года из кэша разной давности. Их текущая доступность и стоимость доставки не подтверждены.</p>
+      <strong>About the demo data</strong>
+      <p>Sony and Canon prices are simulated. Charizard prices come from archived eBay listings collected on November 15, 2026. Current availability and shipping costs are unverified.</p>
     </footer>
   </div>
 </body>

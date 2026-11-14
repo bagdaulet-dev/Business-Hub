@@ -27,6 +27,32 @@ test('HTTP uses server fixture, live parser tag, peers and price arithmetic with
   });
 });
 
+test('model year filters the server fixture and stays outside the provider prompt', async () => {
+  const received = [];
+  await withServer({complete: async ({text}) => { received.push(text); return JSON.stringify(rule); }}, async base => {
+    const valid = await post(base, {text: 'Charizard', modelYear: 2023});
+    assert.equal(valid.status, 200);
+    const matches = await valid.json();
+    assert.equal(matches.modelYear, 2023);
+    assert.equal(matches.results.length, 2);
+    assert.ok(matches.results.every(result => result.listing.model_year === 2023));
+    assert.equal(matches.results[0].benchmark, 46000);
+
+    const mismatch = await post(base, {text: 'Charizard', modelYear: 2022});
+    assert.equal(mismatch.status, 200);
+    const empty = await mismatch.json();
+    assert.equal(empty.modelYear, 2022);
+    assert.deepEqual(empty.results, []);
+
+    for (const modelYear of [null, '2023', 2023.5, 23, 10000]) {
+      const invalid = await post(base, {text: 'Charizard', modelYear});
+      assert.equal(invalid.status, 400);
+      assert.equal((await invalid.json()).error.code, 'INVALID_MODEL_YEAR');
+    }
+    assert.deepEqual(received, ['Charizard', 'Charizard']);
+  });
+});
+
 test('strict static allowlist exposes app assets only; denies private paths and traversal',async()=>{
   await withServer({},async base=>{
     for(const path of ['/','/index.html','/app.mjs','/style.css','/search.mjs','/data/demo/products.mjs','/data/demo/charizard-psa9-source-observations.json']){

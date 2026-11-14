@@ -1,73 +1,123 @@
-/** Offline browser integration check. Start the local server first; all AI requests are intercepted. */
+/** Browser to HTTP to pricing engine, with an injected model completion. */
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import {pathToFileURL} from 'node:url';
+import { pathToFileURL } from 'node:url';
+import { createAppServer } from '../../src/server/http.mjs';
+
 const moduleName = process.env.PLAYWRIGHT_MODULE || 'playwright';
-const {chromium} = await import(moduleName.startsWith('/') ? pathToFileURL(moduleName).href : moduleName);
-const browser = await chromium.launch({headless:true, executablePath:process.env.BROWSER_EXECUTABLE || '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser'});
-const {observations} = JSON.parse(await readFile(new URL('../../data/demo/charizard-psa9-source-observations.json',import.meta.url),'utf8'));
-const listing=observations.find(row=>row.price_cents===35000);
-const peers=observations.filter(row=>row!==listing);
-const payload={rule:{card_name:'Charizard ex',max_price_cents:45000},results:[{listing,peers,benchmark:46000,delta:11000,percent:23.91}]};
-const checks=[];
+const { chromium } = await import(moduleName.startsWith('/') ? pathToFileURL(moduleName).href : moduleName);
+const browser = await chromium.launch({ headless: true, executablePath: process.env.BROWSER_EXECUTABLE });
+const modelRule = {
+  card_name: 'Charizard ex', card_number: '199/165', set_name: null,
+  language: 'English', grader: 'PSA', finish: null, grade: 9,
+  max_price_cents: 45000, min_discount_pct: 15
+};
+const modelInputs = [];
+let completion = () => JSON.stringify(modelRule);
+const server = createAppServer({
+  complete: async ({ text }) => {
+    modelInputs.push(text);
+    return completion();
+  }
+});
+
 try {
- const page=await browser.newPage({viewport:{width:390,height:844}});
- let requests=[]; let reply=payload; let fail=false; let release=null;
- await page.route('**/api/search',async route=>{
-  requests.push({method:route.request().method(),body:route.request().postDataJSON()});
-  if(release) await release;
-  try{await route.fulfill({status:fail?503:200,contentType:'application/json',body:JSON.stringify(fail?{error:{code:'PROVIDER_NOT_CONFIGURED'}}:reply)});}catch{}
- });
- await page.goto(process.env.TEST_BASE_URL || 'http://127.0.0.1:4173');
- await page.locator('.listing').first().waitFor();
- await page.locator('[data-query="Sony WH-1000XM5"]').click();
- await page.locator('#reset').click();
- await page.locator('#query').fill('Canon');
- await page.locator('#hunt button.primary').click();
- await page.locator('details summary').first().click();
- assert.equal(requests.length,0);checks.push('load/examples/reset/ordinary search/details make zero AI requests');
- // Empty AI query must not wedge future submissions.
- await page.locator('#query').fill('');
- await page.locator('button[value="ai"]').click();
- assert.equal(requests.length,0);
- await page.locator('#query').fill('Charizard ex 199/165 PSA 9 до $450');
- await page.locator('button[value="ai"]').click();
- await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('AI-поиск: 1'));
- assert.equal(requests.length,1);assert.equal(requests[0].method,'POST');assert.deepEqual(Object.keys(requests[0].body),['text']);
- assert.equal(await page.locator('.listing').count(),1);
- assert.match(await page.locator('.price').textContent(),/350/);
- assert.match(await page.locator('#parsed-rule').textContent(),/450/);
- checks.push('empty query recovers; explicit AI submit renders one result and parsed conditions');
- reply={...payload,rule:{card_name:'<img src=x onerror="window.__xss=1">',max_price_cents:45000}};
- await page.locator('button[value="ai"]').click();
- await page.waitForFunction(()=>document.querySelector('#parsed-rule').textContent.includes('<img'));
- assert.equal(await page.locator('#parsed-rule img').count(),0);assert.equal(await page.evaluate(()=>window.__xss),undefined);
- checks.push('parsed model text is not executable HTML');
- fail=true;
- await page.locator('button[value="ai"]').click();
- await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('не настроен'));
- const afterFailure=requests.length;
- await page.locator('[data-query="Sony WH-1000XM5"]').click();
- assert.ok(await page.locator('.listing').count()>0);assert.equal(requests.length,afterFailure);
- checks.push('provider failure leaves ordinary search working');
- fail=false;reply=payload;
- let resolve;release=new Promise(r=>{resolve=r;});
- const before=requests.length;
- await page.locator('#query').fill('Charizard ex');
- await page.locator('button[value="ai"]').evaluate(button=>{button.click();button.click();});
- await page.waitForFunction(()=>document.querySelector('button[value="ai"]').disabled);
- // Ensure intercepted first request has reached the route before checking count.
- await page.waitForTimeout(100);
- assert.equal(requests.length,before+1);
- await page.locator('#reset').click();
- const resetStatus=await page.locator('#status').textContent();
- resolve();release=null;
- await page.waitForTimeout(100);
- assert.equal(await page.locator('#status').textContent(),resetStatus);
- assert.equal(await page.locator('#parsed-rule').textContent(),'');
- checks.push('rapid double click is single request; reset invalidates late response');
- const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth);
- assert.equal(overflow,false);checks.push('390px mobile viewport has no horizontal overflow');
- await page.screenshot({path:process.env.BROWSER_SCREENSHOT || '/tmp/collectwatch-browser.png',fullPage:true});
- console.log(JSON.stringify({passed:checks.length,checks,aiRequestsIntercepted:requests.length,liveProviderCalls:0},null,2));
-} finally {await browser.close();}
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+  await page.goto(`http://127.0.0.1:${server.address().port}`);
+  const results = page.locator('#results');
+  const query = page.locator('#query');
+  const year = page.locator('#year');
+  const budget = page.locator('#budget');
+  const search = page.getByRole('button', { name: 'Search', exact: true });
+  const aiSearch = page.getByRole('button', { name: 'Search Pokémon with AI' });
+  const cards = page.locator('.listing');
+
+  assert.ok(await results.isHidden());
+  await page.getByRole('button', { name: /Sony WH-1000XM5/ }).click();
+  assert.equal(await year.inputValue(), '2022');
+  assert.ok(await results.isHidden());
+  await year.fill('2023');
+  await search.click();
+  await page.getByText(/No matches in the demo catalog/).waitFor();
+  await year.fill('2022');
+  await budget.fill('250');
+  await search.click();
+  assert.equal(await cards.count(), 1);
+  await page.getByText('Why this price?', { exact: true }).click();
+  assert.match(await page.locator('details[open] p').textContent(), /\$299/);
+  assert.deepEqual(modelInputs, []);
+
+  await page.getByRole('button', { name: /Charizard ex/ }).click();
+  assert.ok(await results.isHidden());
+  await page.locator('#grade').selectOption('PSA 9');
+  await budget.fill('450');
+  await aiSearch.click();
+  await page.getByText('1 match in archived Pokémon listings').waitFor();
+  assert.equal(await cards.count(), 1);
+  assert.equal(await page.locator('.price').textContent(), '$350');
+  assert.match(await page.locator('#parsed-rule').textContent(), /Model year: 2023/);
+  await page.getByText('Why this price?', { exact: true }).click();
+  assert.match(await page.locator('details[open] p').textContent(), /\$460/);
+  assert.deepEqual(modelInputs, ['Charizard ex 199/165; PSA 9; maximum price USD 450']);
+
+  await year.fill('2022');
+  await aiSearch.click();
+  await page.getByText('0 matches in archived Pokémon listings').waitFor();
+  assert.equal(await cards.count(), 0);
+  assert.match(await page.locator('#parsed-rule').textContent(), /Model year: 2022/);
+
+  completion = () => JSON.stringify({ ...modelRule, card_name: '<b>Charizard ex</b>' });
+  await aiSearch.click();
+  await page.getByText(/AI interpreted your search as Card: <b>Charizard ex<\/b>/).waitFor();
+  assert.equal(await page.locator('#parsed-rule b').count(), 0);
+
+  let release;
+  const pending = new Promise(resolve => { release = resolve; });
+  let started;
+  const providerStarted = new Promise(resolve => { started = resolve; });
+  completion = async () => {
+    started();
+    await pending;
+    return JSON.stringify(modelRule);
+  };
+  const callsBefore = modelInputs.length;
+  try {
+    await aiSearch.evaluate(button => { button.click(); button.click(); });
+    await providerStarted;
+    assert.equal(modelInputs.length, callsBefore + 1);
+    const canceled = page.waitForEvent('requestfailed', request => request.url().endsWith('/api/search'));
+    await page.getByRole('button', { name: /Sony WH-1000XM5/ }).click();
+    await canceled;
+    assert.ok(await results.isHidden());
+    assert.equal(await query.inputValue(), 'Sony WH-1000XM5');
+  } finally {
+    release();
+  }
+
+  await page.getByRole('button', { name: /Charizard ex/ }).click();
+  completion = () => { throw Error('Simulated provider failure'); };
+  await aiSearch.click();
+  await page.getByText('AI search could not finish. Try again or use Search.').waitFor();
+  await page.getByRole('button', { name: 'Clear search' }).click();
+  assert.ok(await results.isHidden());
+  assert.equal(await query.inputValue(), '');
+  await query.fill('Canon');
+  await search.click();
+  assert.equal(await cards.count(), 4);
+
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 844 });
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth === innerWidth));
+  }
+  console.log('Browser checks passed: standard search, year, AI with an injected model, explanation, error recovery, and responsive layout.');
+} finally {
+  await browser.close();
+  if (server.listening) {
+    server.closeAllConnections();
+    await new Promise(resolve => server.close(resolve));
+  }
+}

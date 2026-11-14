@@ -1,5 +1,6 @@
 {
   "schema_version": 1,
+  "model_year": 2023,
   "retrieved_date": "2026-11-15",
   "purpose": "Source observations for a clearly labelled demo snapshot, not current live listings or completed sales.",
   "live_verified": false,

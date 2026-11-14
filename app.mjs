@@ -3,19 +3,22 @@ import { sampleProducts } from './data/demo/products.mjs';
 
 const form = document.querySelector('#hunt');
 const findings = document.querySelector('#findings');
+const resultsSection = document.querySelector('#results');
+const searchButton = document.querySelector('#search');
+const aiButton = document.querySelector('#ai-search');
+const parsed = document.querySelector('#parsed-rule');
 const status = document.querySelector('#status');
 const reset = document.querySelector('#reset');
 const query = document.querySelector('#query');
+const year = document.querySelector('#year');
 const grade = document.querySelector('#grade');
 const gradeField = document.querySelector('#grade-field');
 const explainEndpoint = document.querySelector('meta[name="collectwatch-explain-endpoint"]').content;
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
-const percentFormat = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 });
+const percentFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
 const money = cents => usd.format(cents / 100).replace(/\.00$/, '');
 let listings = [];
-let searchRequest = null;
-const parsed = document.querySelector('#parsed-rule');
-const submitButtons = [...form.querySelectorAll('button[type=submit]')];
+let activeSearch = null;
 
 function ebayLink({ item_id, title, sample }) {
   const link = document.createElement('a');
@@ -23,7 +26,7 @@ function ebayLink({ item_id, title, sample }) {
   const url = new URL(sample ? '/sch/i.html' : '/itm/' + encodeURIComponent(item_id), 'https://www.ebay.com');
   if (sample) url.searchParams.set('_nkw', title);
   link.href = url.href;
-  link.textContent = sample ? 'Поиск на eBay ↗' : 'Лот на eBay ↗';
+  link.textContent = sample ? 'Search eBay ↗' : 'View on eBay ↗';
   link.target = '_blank';
   link.rel = 'noopener noreferrer';
   return link;
@@ -32,11 +35,14 @@ function ebayLink({ item_id, title, sample }) {
 function explain({ listing, peers, benchmark, delta }) {
   const details = document.createElement('details');
   const summary = document.createElement('summary');
-  summary.textContent = 'Почему?';
+  summary.textContent = 'Why this price?';
   const text = document.createElement('p');
+  const comparison = delta === 0
+    ? `This price matches the median of ${money(benchmark)}.`
+    : `This price (${money(listing.price_cents)}) is ${money(Math.abs(delta))} ${delta > 0 ? 'below' : 'above'} the median of ${money(benchmark)}.`;
   text.textContent = benchmark === null
-    ? 'Для сравнения нужно хотя бы три объявления той же модели и комплектации.'
-    : `Разница между медианой (${money(benchmark)}) и ценой лота (${money(listing.price_cents)}) составляет ${money(Math.abs(delta))}. В сравнении ${peers.length} других объявлений той же модели и комплектации, включая варианты выше бюджета. Все цены без доставки и налогов.`;
+    ? 'A price comparison needs at least three other offers for the same model and configuration.'
+    : `${comparison} The comparison uses ${peers.length} other offers for the same model and configuration, including offers above your budget. Prices exclude shipping and tax.`;
   const bars = document.createElement('ul');
   bars.className = 'bars';
   const maxPrice = Math.max(listing.price_cents, ...peers.map(peer => peer.price_cents));
@@ -49,8 +55,8 @@ function explain({ listing, peers, benchmark, delta }) {
     bar.className = 'bar';
     bar.style.setProperty('--width', `${peer.price_cents / maxPrice * 100}%`);
     row.classList.toggle('current', current);
-    const source = current ? document.createTextNode(listing.sample ? 'Этот вариант' : 'Этот лот')
-      : listing.sample ? document.createTextNode('Демо') : ebayLink(peer);
+    const source = current ? document.createTextNode(listing.sample ? 'This example' : 'This listing')
+      : listing.sample ? document.createTextNode('Sample') : ebayLink(peer);
     row.append(label, bar, source);
     bars.append(row);
   }
@@ -65,7 +71,7 @@ function addApiExplanation(details, { listing, peers, benchmark }) {
     details.removeEventListener('toggle', requestExplanation);
     const output = document.createElement('p');
     output.setAttribute('role', 'status');
-    output.textContent = 'Готовим дополнительное объяснение…';
+    output.textContent = 'Loading an additional explanation…';
     details.insertBefore(output, details.querySelector('.bars'));
     try {
       const endpoint = new URL(explainEndpoint, location.href);
@@ -88,7 +94,7 @@ function addApiExplanation(details, { listing, peers, benchmark }) {
       if (typeof explanation !== 'string' || !explanation.trim()) throw new Error('Invalid explanation');
       output.textContent = explanation;
     } catch {
-      output.textContent = 'Дополнительное объяснение недоступно. Расчёт показан выше.';
+      output.textContent = 'The additional explanation is unavailable. You can still see the price comparison above.';
     }
   });
 }
@@ -102,28 +108,19 @@ function updateGrade() {
   if (!show) grade.value = '';
 }
 
-function render() {
-  searchRequest?.abort();
-  searchRequest = null;
-  submitButtons.forEach(button=>button.disabled=false);
-  parsed.textContent = '';
-  const filters = Object.fromEntries(new FormData(form));
-  const results = searchListings(listings, filters);
-  renderResults(results, filters);
-}
-
-function renderResults(results, filters, ai = false) {
-  reset.hidden = false;
-  status.textContent = ai ? `AI-поиск: ${results.length} совпадений в историческом наборе Pokémon` : `Найдено ${results.length} из ${listings.length} вариантов в демо`;
+function renderResults(results, filters, catalog = 'the demo catalog') {
+  resultsSection.hidden = false;
+  status.textContent = `${results.length} ${results.length === 1 ? 'match' : 'matches'} in ${catalog}`;
   findings.replaceChildren();
 
   if (!results.length) {
     const empty = document.createElement('div');
     empty.className = 'empty';
     const message = document.createElement('p');
-    message.textContent = 'В демо совпадений нет. Измени запрос или бюджет.';
+    message.textContent = 'No matches in the demo catalog. Try a different year, budget, or search term.';
     empty.append(message);
-    if (filters.query.trim()) empty.append(ebayLink({ title: filters.query.trim(), sample: true }));
+    const ebayQuery = [filters.query, filters.year, filters.grade].filter(Boolean).join(' ');
+    empty.append(ebayLink({ title: ebayQuery, sample: true }));
     findings.append(empty);
     return;
   }
@@ -137,85 +134,141 @@ function renderResults(results, filters, ai = false) {
     const title = document.createElement('h3');
     title.textContent = listing.title;
     const tag = document.createElement('p');
-    tag.textContent = listing.sample ? 'Пример · смоделированная цена' : 'Историческое объявление · доступность не проверена';
+    tag.textContent = listing.sample ? 'Demo example · simulated price' : 'Archived eBay listing';
     const variant = document.createElement('p');
     variant.className = 'variant';
-    variant.textContent = listing.variant ?? `${listing.grader} ${listing.grade} · ${listing.set_name}`;
+    const description = listing.variant ?? `${listing.grader} ${listing.grade} · ${listing.set_name}`;
+    variant.textContent = [listing.model_year, description].filter(Boolean).join(' · ');
     const price = document.createElement('strong');
     price.className = 'price';
     price.textContent = money(listing.price_cents);
     const comparison = document.createElement('p');
     comparison.className = percent > 0 ? 'comparison favorable' : 'comparison';
-    comparison.textContent = percent === null ? 'Мало аналогов'
-      : percent === 0 ? 'На уровне медианы'
-      : `${percentFormat.format(Math.abs(percent))}% ${percent > 0 ? 'ниже' : 'выше'} медианы`;
+    comparison.textContent = percent === null ? 'Too few comparable offers'
+      : percent === 0 ? 'At the median'
+      : `${percentFormat.format(Math.abs(percent))}% ${percent > 0 ? 'below' : 'above'} the median`;
     info.append(tag, title, variant, price, comparison);
     row.append(info, ebayLink(listing), explain(finding));
     findings.append(row);
   });
 }
 
-query.addEventListener('input', updateGrade);
+function clearResults() {
+  if (activeSearch) {
+    const request = activeSearch;
+    activeSearch = null;
+    request.abort();
+    searchButton.disabled = false;
+    aiButton.disabled = false;
+  }
+  parsed.hidden = true;
+  parsed.textContent = '';
+  resultsSection.hidden = true;
+  findings.replaceChildren();
+  status.textContent = '';
+}
+
+query.addEventListener('input', () => {
+  query.setCustomValidity('');
+  updateGrade();
+});
 document.querySelector('.examples').addEventListener('click', event => {
   const example = event.target.closest('[data-query]');
-  if (!example || !listings.length) return;
+  if (!example) return;
   query.value = example.dataset.query;
+  query.setCustomValidity('');
+  year.value = example.dataset.year;
   updateGrade();
-  render();
+  clearResults();
+  query.focus({ preventScroll: true });
 });
 
-async function aiSearch() {
-  if (searchRequest) return;
+const aiMessages = {
+  INVALID_MODEL_YEAR: 'Enter a four-digit model year.',
+  UNSUPPORTED_QUERY: 'AI search does not support those filters. Try a single card grade and a budget in USD.',
+  QUERY_NEEDS_CARD: 'Enter a Pokémon card name or number.',
+  INVALID_QUERY: 'Check the length and content of your search.',
+  PROVIDER_NOT_CONFIGURED: 'AI search is unavailable on this server. You can still use Search.',
+  TOO_MANY_REQUESTS: 'The demo request limit was reached. Try again later.',
+  PROVIDER_TIMEOUT: 'AI search timed out. You can still use Search.'
+};
+
+function showParsedRule(rule, modelYear) {
+  const labels = {
+    card_name: 'Card', card_number: 'Number', set_name: 'Set', language: 'Language',
+    grader: 'Grading company', grade: 'Grade', finish: 'Finish',
+    max_price_cents: 'Max price', min_discount_pct: 'Minimum discount'
+  };
+  const conditions = Object.entries(labels).filter(([key]) => rule[key] != null).map(([key, label]) => {
+    const value = key === 'max_price_cents' ? money(rule[key])
+      : key === 'min_discount_pct' ? `${rule[key]}%` : rule[key];
+    return `${label}: ${value}`;
+  });
+  if (modelYear != null) conditions.push(`Model year: ${modelYear}`);
+  parsed.textContent = `AI interpreted your search as ${conditions.join(' · ')}. Current availability is unverified.`;
+  parsed.hidden = false;
+}
+
+async function aiSearch(filters) {
   const controller = new AbortController();
-  searchRequest = controller;
+  activeSearch = controller;
   const timer = setTimeout(() => controller.abort(), 25000);
-  const text = query.value.trim();
-  if (!text) { clearTimeout(timer); searchRequest = null; status.textContent = 'Опиши нужную карточку Pokémon.'; return; }
-  // Keep form controls explicit; the server parses the query, never trusts client prices.
-  const budget = form.elements.budget.value;
-  const selectedGrade = grade.disabled ? '' : grade.value;
-  const requestText = [text, selectedGrade, budget === '' ? '' : `бюджет до ${budget} долларов США`].filter(Boolean).join('; ');
-  submitButtons.forEach(button => button.disabled = true);
-  status.textContent = 'Kimi разбирает условия поиска…';
-  parsed.textContent = '';
-  findings.replaceChildren();
+  const text = [filters.query, filters.grade,
+    filters.budget === '' ? '' : `maximum price USD ${filters.budget}`].filter(Boolean).join('; ');
+  const body = filters.year ? { text, modelYear: Number(filters.year) } : { text };
+  searchButton.disabled = true;
+  aiButton.disabled = true;
+  resultsSection.hidden = false;
+  status.textContent = 'AI is reading your Pokémon search…';
   try {
-    const response = await fetch('/api/search', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text:requestText}), signal:controller.signal
+    const response = await fetch('./api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal
     });
     const payload = await response.json();
+    if (activeSearch !== controller) return;
     if (!response.ok) {
-      const messages = {
-        UNSUPPORTED_QUERY:'Условия пока не поддерживаются. Попробуй одну оценку PSA и бюджет в долларах.',
-        QUERY_NEEDS_CARD:'Укажи название или номер карточки.',
-        INVALID_QUERY:'Проверь длину и содержание запроса.',
-        PROVIDER_NOT_CONFIGURED:'AI-поиск ещё не настроен на сервере. Обычный поиск доступен.',
-        TOO_MANY_REQUESTS:'Лимит демо-запросов достигнут. Попробуй позже.',
-        PROVIDER_TIMEOUT:'Модель не ответила вовремя. Автоматический повтор не выполнялся.'
-      };
-      throw new Error(messages[payload.error?.code] ?? 'AI-поиск не завершён. Попробуй обычный поиск или отправь запрос позже.');
+      status.textContent = aiMessages[payload.error?.code] ?? 'AI search could not finish. Try again or use Search.';
+      return;
     }
-    if (searchRequest !== controller) return;
-    if (!Array.isArray(payload.results) || !payload.rule) throw new Error('Не удалось прочитать результат AI-поиска.');
-    renderResults(payload.results, {query:text}, true);
-    const ruleLabels = {card_name:'Карточка',card_number:'Номер',set_name:'Выпуск',language:'Язык',grader:'Оценщик',grade:'Оценка',finish:'Вариант',max_price_cents:'Бюджет, $',min_discount_pct:'Минимальная разница, %'};
-    const conditions = Object.entries(ruleLabels).filter(([key])=>payload.rule[key]!=null).map(([key,label])=>`${label}: ${key==='max_price_cents'?payload.rule[key]/100:payload.rule[key]}`);
-    parsed.textContent = `Kimi поняла: ${conditions.join(' · ')}. Проверь условия. Сравнение исторических цен без доставки и налогов; доступность не проверена.`;
-  } catch(error) {
-    if (searchRequest !== controller) return;
-    status.textContent = error.name === 'AbortError' ? 'AI-поиск прерван или истекло время ожидания.' : error.message;
+    if (!Array.isArray(payload.results) || !payload.rule) throw new Error('Invalid AI search response');
+    renderResults(payload.results, filters, 'archived Pokémon listings');
+    showParsedRule(payload.rule, payload.modelYear);
+  } catch {
+    if (activeSearch === controller) {
+      status.textContent = controller.signal.aborted
+        ? 'AI search timed out. You can still use Search.'
+        : 'AI search could not finish. Try again or use Search.';
+    }
   } finally {
     clearTimeout(timer);
-    if (searchRequest === controller) {searchRequest = null; submitButtons.forEach(button=>button.disabled=false);}
+    if (activeSearch === controller) {
+      activeSearch = null;
+      searchButton.disabled = false;
+      aiButton.disabled = false;
+    }
   }
 }
 
-form.addEventListener('submit', async event => {
+form.addEventListener('submit', event => {
   event.preventDefault();
-  if (!listings.length) return;
-  if (event.submitter?.value === 'ai') await aiSearch();
-  else render();
+  if (!listings.length || activeSearch) return;
+  query.value = query.value.trim();
+  if (!query.value) {
+    query.setCustomValidity('Enter a product name or model.');
+    query.reportValidity();
+    return;
+  }
+  updateGrade();
+  const filters = Object.fromEntries(new FormData(form));
+  clearResults();
+  if (event.submitter === aiButton) {
+    void aiSearch(filters);
+  } else {
+    renderResults(searchListings(listings, filters), filters);
+  }
   const heading = document.querySelector('#results-title');
   heading.focus({ preventScroll: true });
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -223,19 +276,22 @@ form.addEventListener('submit', async event => {
 });
 reset.addEventListener('click', () => {
   form.reset();
+  query.setCustomValidity('');
   updateGrade();
-  render();
+  clearResults();
+  query.focus();
 });
 
 try {
   const response = await fetch('./data/demo/charizard-psa9-source-observations.json');
   if (!response.ok) throw new Error('Listings cannot be loaded');
-  const { observations } = await response.json();
-  listings = [...observations, ...sampleProducts];
+  const { observations, model_year } = await response.json();
+  listings = [...observations.map(listing => ({ ...listing, model_year })), ...sampleProducts];
   updateGrade();
-  render();
-  reset.hidden = true;
+  searchButton.disabled = false;
+  aiButton.disabled = false;
 } catch {
-  status.textContent = 'Не удалось загрузить данные. Открой демо через HTTP-сервер и обнови страницу.';
-  form.querySelector('button').disabled = true;
+  const error = document.querySelector('#load-error');
+  error.textContent = 'The demo catalog could not load. Refresh the page to try again.';
+  error.hidden = false;
 }

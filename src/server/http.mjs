@@ -22,16 +22,16 @@ export function createAppServer(options={}) {
       if(!raw?.startsWith('/')||raw.startsWith('//'))throw new Error();
       path=decodeURIComponent(raw);
       if(path.includes('\\')||path.includes('\0')||path.split('/').some(part=>part==='.'||part==='..'))throw new Error();
-    }catch{req.resume();sendJson(res,404,{error:{code:'NOT_FOUND',message:'Ресурс не найден.'}});return;}
+    }catch{req.resume();sendJson(res,404,{error:{code:'NOT_FOUND',message:'Resource not found.'}});return;}
     if(path==='/api/search'){await search(req,res);return;}
     const file=paths.get(path);
-    if(!file){req.resume();sendJson(res,404,{error:{code:'NOT_FOUND',message:'Ресурс не найден.'}});return;}
-    if(!['GET','HEAD'].includes(req.method)){req.resume();res.setHeader('allow','GET, HEAD');sendJson(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'Используйте GET или HEAD.'}});return;}
+    if(!file){req.resume();sendJson(res,404,{error:{code:'NOT_FOUND',message:'Resource not found.'}});return;}
+    if(!['GET','HEAD'].includes(req.method)){req.resume();res.setHeader('allow','GET, HEAD');sendJson(res,405,{error:{code:'METHOD_NOT_ALLOWED',message:'Use GET or HEAD.'}});return;}
     try{
       const body=await readFile(new URL(file[0],root));
       res.writeHead(200,{'content-type':file[1],'content-length':body.length,'cache-control':'no-store','x-content-type-options':'nosniff'});
       res.end(req.method==='HEAD'?undefined:body);
-    }catch{sendJson(res,404,{error:{code:'NOT_FOUND',message:'Ресурс не найден.'}});}
+    }catch{sendJson(res,404,{error:{code:'NOT_FOUND',message:'Resource not found.'}});}
   });
   server.requestTimeout=10000;
   server.headersTimeout=10000;
