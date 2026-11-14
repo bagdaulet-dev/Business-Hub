@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "node build-static.mjs",
+  "outputDirectory": "public",
+  "functions": {
+    "api/search.js": {
+      "maxDuration": 30,
+      "includeFiles": "data/demo/charizard-psa9-source-observations.json"
+    }
+  }
+}

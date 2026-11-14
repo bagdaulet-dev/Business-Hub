@@ -5,6 +5,8 @@ const form = document.querySelector('#hunt');
 const findings = document.querySelector('#findings');
 const resultsSection = document.querySelector('#results');
 const searchButton = document.querySelector('#search');
+const aiButton = document.querySelector('#ai-search');
+const parsed = document.querySelector('#parsed-rule');
 const status = document.querySelector('#status');
 const reset = document.querySelector('#reset');
 const query = document.querySelector('#query');
@@ -16,6 +18,7 @@ const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD',
 const percentFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
 const money = cents => usd.format(cents / 100).replace(/\.00$/, '');
 let listings = [];
+let activeSearch = null;
 
 function ebayLink({ item_id, title, sample }) {
   const link = document.createElement('a');
@@ -105,11 +108,9 @@ function updateGrade() {
   if (!show) grade.value = '';
 }
 
-function render() {
-  const filters = Object.fromEntries(new FormData(form));
-  const results = searchListings(listings, filters);
+function renderResults(results, filters, catalog = 'the demo catalog') {
   resultsSection.hidden = false;
-  status.textContent = `${results.length} ${results.length === 1 ? 'match' : 'matches'} in the demo catalog`;
+  status.textContent = `${results.length} ${results.length === 1 ? 'match' : 'matches'} in ${catalog}`;
   findings.replaceChildren();
 
   if (!results.length) {
@@ -137,7 +138,7 @@ function render() {
     const variant = document.createElement('p');
     variant.className = 'variant';
     const description = listing.variant ?? `${listing.grader} ${listing.grade} · ${listing.set_name}`;
-    variant.textContent = `${listing.model_year} · ${description}`;
+    variant.textContent = [listing.model_year, description].filter(Boolean).join(' · ');
     const price = document.createElement('strong');
     price.className = 'price';
     price.textContent = money(listing.price_cents);
@@ -153,6 +154,15 @@ function render() {
 }
 
 function clearResults() {
+  if (activeSearch) {
+    const request = activeSearch;
+    activeSearch = null;
+    request.abort();
+    searchButton.disabled = false;
+    aiButton.disabled = false;
+  }
+  parsed.hidden = true;
+  parsed.textContent = '';
   resultsSection.hidden = true;
   findings.replaceChildren();
   status.textContent = '';
@@ -173,9 +183,78 @@ document.querySelector('.examples').addEventListener('click', event => {
   query.focus({ preventScroll: true });
 });
 
+const aiMessages = {
+  INVALID_MODEL_YEAR: 'Enter a four-digit model year.',
+  UNSUPPORTED_QUERY: 'AI search does not support those filters. Try a single card grade and a budget in USD.',
+  QUERY_NEEDS_CARD: 'Enter a Pokémon card name or number.',
+  INVALID_QUERY: 'Check the length and content of your search.',
+  PROVIDER_NOT_CONFIGURED: 'AI search is unavailable on this server. You can still use Search.',
+  TOO_MANY_REQUESTS: 'The demo request limit was reached. Try again later.',
+  PROVIDER_TIMEOUT: 'AI search timed out. You can still use Search.'
+};
+
+function showParsedRule(rule, modelYear) {
+  const labels = {
+    card_name: 'Card', card_number: 'Number', set_name: 'Set', language: 'Language',
+    grader: 'Grading company', grade: 'Grade', finish: 'Finish',
+    max_price_cents: 'Max price', min_discount_pct: 'Minimum discount'
+  };
+  const conditions = Object.entries(labels).filter(([key]) => rule[key] != null).map(([key, label]) => {
+    const value = key === 'max_price_cents' ? money(rule[key])
+      : key === 'min_discount_pct' ? `${rule[key]}%` : rule[key];
+    return `${label}: ${value}`;
+  });
+  if (modelYear != null) conditions.push(`Model year: ${modelYear}`);
+  parsed.textContent = `AI interpreted your search as ${conditions.join(' · ')}. Current availability is unverified.`;
+  parsed.hidden = false;
+}
+
+async function aiSearch(filters) {
+  const controller = new AbortController();
+  activeSearch = controller;
+  const timer = setTimeout(() => controller.abort(), 25000);
+  const text = [filters.query, filters.grade,
+    filters.budget === '' ? '' : `maximum price USD ${filters.budget}`].filter(Boolean).join('; ');
+  const body = filters.year ? { text, modelYear: Number(filters.year) } : { text };
+  searchButton.disabled = true;
+  aiButton.disabled = true;
+  resultsSection.hidden = false;
+  status.textContent = 'AI is reading your Pokémon search…';
+  try {
+    const response = await fetch('./api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+    const payload = await response.json();
+    if (activeSearch !== controller) return;
+    if (!response.ok) {
+      status.textContent = aiMessages[payload.error?.code] ?? 'AI search could not finish. Try again or use Search.';
+      return;
+    }
+    if (!Array.isArray(payload.results) || !payload.rule) throw new Error('Invalid AI search response');
+    renderResults(payload.results, filters, 'archived Pokémon listings');
+    showParsedRule(payload.rule, payload.modelYear);
+  } catch {
+    if (activeSearch === controller) {
+      status.textContent = controller.signal.aborted
+        ? 'AI search timed out. You can still use Search.'
+        : 'AI search could not finish. Try again or use Search.';
+    }
+  } finally {
+    clearTimeout(timer);
+    if (activeSearch === controller) {
+      activeSearch = null;
+      searchButton.disabled = false;
+      aiButton.disabled = false;
+    }
+  }
+}
+
 form.addEventListener('submit', event => {
   event.preventDefault();
-  if (!listings.length) return;
+  if (!listings.length || activeSearch) return;
   query.value = query.value.trim();
   if (!query.value) {
     query.setCustomValidity('Enter a product name or model.');
@@ -183,7 +262,13 @@ form.addEventListener('submit', event => {
     return;
   }
   updateGrade();
-  render();
+  const filters = Object.fromEntries(new FormData(form));
+  clearResults();
+  if (event.submitter === aiButton) {
+    void aiSearch(filters);
+  } else {
+    renderResults(searchListings(listings, filters), filters);
+  }
   const heading = document.querySelector('#results-title');
   heading.focus({ preventScroll: true });
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -200,11 +285,11 @@ reset.addEventListener('click', () => {
 try {
   const response = await fetch('./data/demo/charizard-psa9-source-observations.json');
   if (!response.ok) throw new Error('Listings cannot be loaded');
-  const { observations } = await response.json();
-  // These observations all refer to the 2023 Scarlet & Violet—151 release.
-  listings = [...observations.map(listing => ({ ...listing, model_year: 2023 })), ...sampleProducts];
+  const { observations, model_year } = await response.json();
+  listings = [...observations.map(listing => ({ ...listing, model_year })), ...sampleProducts];
   updateGrade();
   searchButton.disabled = false;
+  aiButton.disabled = false;
 } catch {
   const error = document.querySelector('#load-error');
   error.textContent = 'The demo catalog could not load. Refresh the page to try again.';

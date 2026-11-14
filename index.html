@@ -34,7 +34,7 @@
       </section>
       <form id="hunt" class="hunt">
         <label class="query">What are you looking for?
-          <input id="query" name="query" type="search" placeholder="Product name or model" maxlength="100" required>
+          <input id="query" name="query" type="search" placeholder="Product name or model" maxlength="1500" required>
         </label>
         <label>Model year
           <input id="year" name="year" type="text" inputmode="numeric" pattern="[1-9][0-9]{3}" maxlength="4" placeholder="Any year" title="Enter a four-digit model year">
@@ -46,7 +46,8 @@
           <select name="grade" id="grade" disabled><option value="">Any grade</option><option>PSA 8</option><option>PSA 9</option><option>PSA 10</option></select>
         </label>
         <button class="primary" type="submit" id="search" disabled><span aria-hidden="true">⌕</span> Search</button>
-        <p class="basis">Year and budget are optional. Prices exclude shipping and tax.</p>
+        <button class="secondary ai-search" type="submit" id="ai-search" disabled>Search Pokémon with AI</button>
+        <p class="basis">Year and budget are optional. Prices exclude shipping and tax. AI search uses archived Pokémon listings.</p>
         <p id="load-error" class="basis" role="alert" hidden></p>
       </form>
       <section class="examples" aria-labelledby="examples-title">
@@ -68,6 +69,7 @@
           <div><h2 id="results-title" tabindex="-1">Search results</h2><p id="status" role="status"></p></div>
           <button type="button" id="reset" class="secondary">Clear search</button>
         </div>
+        <p id="parsed-rule" role="status" hidden></p>
         <div id="findings"></div>
       </section>
     </main>

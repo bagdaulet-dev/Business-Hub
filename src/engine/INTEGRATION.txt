@@ -1,0 +1,54 @@
+CollectWatch data-engine handoff (aibarC)
+
+STATUS
+Internal modules ready for review, not the shared application contract. No src/contracts, app, package/lock, deployment or teammate-owned server files were changed. Adapt exports once bagdaulet-dev publishes the common contract; do not maintain competing shared types.
+
+RUN (Node 22.14.0 verified; no dependencies)
+node --test tests/engine/*.test.mjs
+node src/engine/demo.mjs
+The latter is OFFLINE with a preset rule, not natural-language AI. Expected output is data/demo/expected-price-demo.json.
+
+MODULES
+src/providers/rule-parser.mjs: parseRule(text, {complete, timeoutMs}) extracts/validates a rule. Strict validation, null unspecified fields, bounded input/output, deadline, safe errors, no silent fallback or retries. Prompt-only semantic correctness is unverified: model can return valid JSON with wrong meaning; display parsed conditions for user review.
+src/providers/telecom.mjs: createTelecomCompletion({apiKey, model, baseUrl?, fetchImpl?, maxTokens?}) returns complete for the Kazakhtelecom OpenAI-compatible gateway. Approved base URL is https://llm.telecom.kz/v1; redirects prohibited. Server-only configuration uses LLM_API_KEY, LLM_MODEL, LLM_BASE_URL. No automatic requests or retries. Model ID must come from /models; no model is guessed. User-supplied KT access PDF documents Bearer authentication, /models and /chat/completions. Mock transport tests do not prove live access.
+src/engine/evaluate-rule.mjs: evaluateRule(observations, validatedRule, options) selects matching observations and partitions exact identities. Null constraints are unrestricted, not inferred; separate grade/set/finish groups get separate baselines. Unknown identity fields excluded with warning. Uses source-observation schema, not final app schema.
+src/engine/pricing.mjs: evaluatePricing(observations, exactIdentity, options) computes leave-one-out comparisons. minComparables default 3 is an internal configurable choice pending contract confirmation. Filter budget/discount after full baseline. Explicit bundle/accessory/replica flags excluded, unknown item_type is not independently authenticated. No risk scoring.
+
+SERVER CALL SEQUENCE (after configuration and contract adapter)
+const complete = createTelecomCompletion({apiKey: serverKey, model: serverModel});
+const rule = await parseRule(userText, {complete});
+const evaluation = evaluateRule(observations, rule, {basis:'item_price'});
+Return rule and adapted evaluation with parserMode live-llm ONLY if the real provider was called successfully. Preset demos must say preset-demo. Unsupported currencies, grade ranges or conflicting/unsupported constraints should return explicit errors; current extraction subset is intentionally limited. Live semantic evaluation remains required.
+
+DATA & OUTPUT
+Source JSON: data/demo/charizard-psa9-source-observations.json.
+Independent verification: data/demo/VERIFICATION.txt.
+Current observations are heterogeneous cached records. source_capture_time null; retrieved_date is access date, NOT original capture time. Two records including WBG350 could not be independently re-opened. No live deal or authenticity claim.
+Default item_price comparison excludes shipping and taxes. Delivered basis requires destinationZip, matching per-record ZIP and known normalized shipping_cents; observed_shipping_cents must never substitute. Unknown costs stay null and cannot pass a delivered budget filter.
+For historical fixture under $450 and at least15% below other asking-price observations: WBG350 is returned, median460, difference110, 23.91%. This is arithmetic on a curated fixture, not a verified current bargain. Removing the 15% threshold returns both350 and400; no hardcoded winner. No-match queries work.
+
+WHAT REMAINS
+1. Shared contract publication and adapter/integration by bagdaulet-dev; align money/basis/null/error names.
+2. Real AI credentials/model through server configuration and a small live semantic evaluation; no secrets in chat/Git.
+3. Current eBay dataset verification for common date/destination or continue clearly labelled historical demo. eBay provider/monitoring wait for approved access.
+4. App, storage, Telegram and deploy belong to bagdaulet-dev. No claim these exist.
+
+INTERNAL COMPOSED ENTRYPOINT
+runQuery({text, observations, complete, timeoutMs?, pricingOptions?}) in run-query.mjs combines parser and grouping. parser_mode=provider means an injected provider was used; it does NOT assert a live model (tests inject mocks). The server owns mapping this to verified live-llm metadata. Three pipeline tests cover one computed result, no matches and invalid extraction before calculation.
+
+LIVE VALIDATION PREPARATION
+The environment checked in this session has no LLM_API_KEY or LLM_MODEL; a local git-ignored .env is now prepared with public telecom URL and empty model/key fields for user configuration. No credentials searched elsewhere or printed. Shared contract still absent from origin/main.
+The evaluator in tests/engine/live-eval.mjs requires --live and server environment configuration. First run --live --limit 1; inspect safe summary, then run remaining approved evaluation cases. No automatic retries. Full semantic reliability is not established by mock tests.
+
+ONE ACCESS CHECK
+User will enter key locally. Run from repo root: node --env-file=.env tests/engine/telecom-smoke.mjs --run
+This makes exactly one GET /models, not a generation request, and creates an ignored attempt marker before sending. No retry/list-all/probe loop. After successful access, choose an actually returned model ID and configure LLM_MODEL before a separately requested generation test. .env and attempt marker never enter Git. No API request has yet been made in this configuration task.
+
+LIVE RESULT UPDATE
+openai/gpt-oss-120b returned HTTP200 and correct full extraction in one trial (~2.1s). Subsequent8-case development run:7 passed,1 INVALID_MODEL_OUTPUT. Total9 generation calls, no retries. Local LLM_MODEL set to this model; not a claim of production stability. See tests/engine/gpt-oss-evaluation-result.json. Previous generic failure of Qwen does not establish that model is unavailable. Next improvement: constrained JSON output if supported, with safe structural diagnostics; no further live runs performed.
+
+CURRENT MODEL SELECTION
+kimi-k3 selected in local env after successful trial (~1.4s) and8/8 prepared development cases (full run~10.1s). Total9 Kimi generation calls, no retries. GPT OSS scored7/8; this small set supports a demo choice, not general accuracy or latency guarantees. Gateway model ID is used exactly as returned. See tests/engine/kimi-evaluation-result.json.
+
+APP INTEGRATION UPDATE
+Teammate branch work/app@4b919b1 merged into work/data-engine by explicit user authorization. App integration uses POST /api/search {text}; see README and src/server/search-handler.mjs. Shared Next.js contract not created: actual client shape adapted to existing static renderer. Server and UI now integrated, 35 unit/HTTP tests pass and mobile browser checks pass. One live server request verified Kimi extraction + fixture filtering. No production deployment or Telegram/monitoring performed. Existing earlier "contract absent" notes describe previous stages.

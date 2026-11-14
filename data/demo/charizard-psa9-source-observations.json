@@ -1,5 +1,6 @@
 {
   "schema_version": 1,
+  "model_year": 2023,
   "retrieved_date": "2026-11-15",
   "purpose": "Source observations for a clearly labelled demo snapshot, not current live listings or completed sales.",
   "live_verified": false,
@@ -40,7 +41,8 @@
       "set_name": "Scarlet & Violet 151",
       "finish": "Special Illustration Rare Holo",
       "image_url": null,
-      "source_capture_time": null
+      "source_capture_time": null,
+      "card_name": "Charizard ex"
     },
     {
       "item_id": "377243146406",
@@ -71,7 +73,8 @@
       "set_name": "Scarlet & Violet 151",
       "finish": "Special Illustration Rare Holo",
       "image_url": null,
-      "source_capture_time": null
+      "source_capture_time": null,
+      "card_name": "Charizard ex"
     },
     {
       "item_id": "127961223460",
@@ -102,7 +105,8 @@
       "set_name": "Scarlet & Violet 151",
       "finish": "Special Illustration Rare Holo",
       "image_url": null,
-      "source_capture_time": null
+      "source_capture_time": null,
+      "card_name": "Charizard ex"
     },
     {
       "item_id": "307004951111",
@@ -133,7 +137,8 @@
       "set_name": "Scarlet & Violet 151",
       "finish": "Special Illustration Rare Holo",
       "image_url": null,
-      "source_capture_time": null
+      "source_capture_time": null,
+      "card_name": "Charizard ex"
     },
     {
       "item_id": "137285300555",
@@ -164,7 +169,8 @@
       "set_name": "Scarlet & Violet 151",
       "finish": "Special Illustration Rare Holo",
       "image_url": null,
-      "source_capture_time": null
+      "source_capture_time": null,
+      "card_name": "Charizard ex"
     },
     {
       "item_id": "900054604971",
@@ -195,7 +201,8 @@
       "set_name": "Scarlet & Violet 151",
       "finish": "Special Illustration Rare Holo",
       "image_url": null,
-      "source_capture_time": null
+      "source_capture_time": null,
+      "card_name": "Charizard ex"
     }
   ]
 }

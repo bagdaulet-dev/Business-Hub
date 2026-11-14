@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+.telecom-smoke-attempt.json
+node_modules/
+work/
+public/
+.vercel/
