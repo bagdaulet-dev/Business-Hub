@@ -20,6 +20,8 @@ async function main() {
   }
   const {cases} = JSON.parse(readFileSync(new URL('./semantic-cases.json',import.meta.url),'utf8'));
   if (!Array.isArray(cases) || !cases.length) throw new Error('INVALID_CASES');
+  const expectedKeys=['card_name','card_number','set_name','language','grader','finish','grade','max_price_cents','min_discount_pct'];
+  if(cases.some(c=>c.expected && (Object.keys(c.expected).length!==expectedKeys.length || expectedKeys.some(k=>!(k in c.expected))))) throw new Error('INVALID_CASES');
   const selected = cases.slice(0, Math.min(limit, cases.length));
   if (!live) {
     emit({status:'dry_run',network_calls:0,available_cases:cases.length,selected_cases:selected.length,
@@ -33,6 +35,7 @@ async function main() {
   const complete = createTelecomCompletion({apiKey,model,baseUrl:process.env.LLM_BASE_URL});
   const {observations} = JSON.parse(readFileSync(new URL('../../data/demo/charizard-psa9-source-observations.json',import.meta.url),'utf8'));
   const results=[];
+  const startedAt=new Date().toISOString();
   let providerAttempts=0;
   // Sequential, one parse attempt per selected case. No retry or fallback.
   for (let index=0; index<selected.length; index++) {
@@ -40,7 +43,7 @@ async function main() {
     const allowedErrors=c.expected_errors ?? (c.expected_error ? [c.expected_error] : []);
     try {
       providerAttempts++;
-      const rule=await parseRule(c.text,{complete});
+      const rule=await parseRule(c.text,{complete,timeoutMs:20000});
       const subsetMatches=Object.entries(c.expected ?? {}).every(([key,value])=>rule[key]===value);
       const actualMatches=c.expected_fixture_matches == null ? null :
         evaluateRule(observations,rule).groups.reduce((sum,group)=>sum+group.findings.length,0);
@@ -55,7 +58,7 @@ async function main() {
     }
   }
   const passed=results.filter(r=>r.passed).length;
-  emit({status:'live_evaluation',available_cases:cases.length,selected_cases:selected.length,
+  emit({status:'live_evaluation',model,started_at:startedAt,finished_at:new Date().toISOString(),available_cases:cases.length,selected_cases:selected.length,
     provider_attempts:providerAttempts,completed_cases:results.length,passed,failed:results.length-passed,results});
   if(passed!==results.length) process.exitCode=1;
 }
