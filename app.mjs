@@ -1,19 +1,26 @@
-import { searchListings } from './search.mjs';
+import { matchesQuery, searchListings } from './search.mjs';
+import { sampleProducts } from './data/demo/products.mjs';
 
 const form = document.querySelector('#hunt');
 const findings = document.querySelector('#findings');
 const status = document.querySelector('#status');
 const reset = document.querySelector('#reset');
+const query = document.querySelector('#query');
+const grade = document.querySelector('#grade');
+const gradeField = document.querySelector('#grade-field');
+const explainEndpoint = document.querySelector('meta[name="collectwatch-explain-endpoint"]').content;
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
 const percentFormat = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 });
 const money = cents => usd.format(cents / 100).replace(/\.00$/, '');
 let listings = [];
 
-function ebayLink(listing) {
+function ebayLink({ item_id, title, sample }) {
   const link = document.createElement('a');
   link.className = 'external';
-  link.href = new URL('/itm/' + encodeURIComponent(listing.item_id), 'https://www.ebay.com').href;
-  link.textContent = 'На eBay ↗';
+  const url = new URL(sample ? '/sch/i.html' : '/itm/' + encodeURIComponent(item_id), 'https://www.ebay.com');
+  if (sample) url.searchParams.set('_nkw', title);
+  link.href = url.href;
+  link.textContent = sample ? 'Поиск на eBay ↗' : 'Лот на eBay ↗';
   link.target = '_blank';
   link.rel = 'noopener noreferrer';
   return link;
@@ -22,11 +29,11 @@ function ebayLink(listing) {
 function explain({ listing, peers, benchmark, delta }) {
   const details = document.createElement('details');
   const summary = document.createElement('summary');
-  summary.textContent = 'Как рассчитано сравнение?';
+  summary.textContent = 'Почему?';
   const text = document.createElement('p');
   text.textContent = benchmark === null
-    ? 'Для сравнения нужно хотя бы три объявления той же версии и грейда.'
-    : `Разница между медианой (${money(benchmark)}) и ценой лота (${money(listing.price_cents)}) составляет ${money(Math.abs(delta))}. В сравнении ${peers.length} других объявлений той же версии и грейда, включая варианты выше бюджета. Все цены без доставки и налогов.`;
+    ? 'Для сравнения нужно хотя бы три объявления той же модели и комплектации.'
+    : `Разница между медианой (${money(benchmark)}) и ценой лота (${money(listing.price_cents)}) составляет ${money(Math.abs(delta))}. В сравнении ${peers.length} других объявлений той же модели и комплектации, включая варианты выше бюджета. Все цены без доставки и налогов.`;
   const bars = document.createElement('ul');
   bars.className = 'bars';
   const maxPrice = Math.max(listing.price_cents, ...peers.map(peer => peer.price_cents));
@@ -39,25 +46,73 @@ function explain({ listing, peers, benchmark, delta }) {
     bar.className = 'bar';
     bar.style.setProperty('--width', `${peer.price_cents / maxPrice * 100}%`);
     row.classList.toggle('current', current);
-    const source = current ? document.createTextNode('Этот лот') : ebayLink(peer);
+    const source = current ? document.createTextNode(listing.sample ? 'Этот вариант' : 'Этот лот')
+      : listing.sample ? document.createTextNode('Демо') : ebayLink(peer);
     row.append(label, bar, source);
     bars.append(row);
   }
   details.append(summary, text, bars);
+  if (explainEndpoint) addApiExplanation(details, { listing, peers, benchmark });
   return details;
+}
+
+function addApiExplanation(details, { listing, peers, benchmark }) {
+  details.addEventListener('toggle', async function requestExplanation() {
+    if (!details.open) return;
+    details.removeEventListener('toggle', requestExplanation);
+    const output = document.createElement('p');
+    output.setAttribute('role', 'status');
+    output.textContent = 'Готовим дополнительное объяснение…';
+    details.insertBefore(output, details.querySelector('.bars'));
+    try {
+      const endpoint = new URL(explainEndpoint, location.href);
+      if (endpoint.origin !== location.origin) throw new Error('Explanation endpoint must use the same origin');
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: listing.title,
+          variant: listing.variant,
+          price_cents: listing.price_cents,
+          comparable_prices_cents: peers.map(peer => peer.price_cents),
+          median_cents: benchmark,
+          source: listing.sample ? 'sample' : 'snapshot'
+        }),
+        signal: AbortSignal.timeout(5000)
+      });
+      if (!response.ok) throw new Error('Explanation unavailable');
+      const { explanation } = await response.json();
+      if (typeof explanation !== 'string' || !explanation.trim()) throw new Error('Invalid explanation');
+      output.textContent = explanation;
+    } catch {
+      output.textContent = 'Дополнительное объяснение недоступно. Расчёт показан выше.';
+    }
+  });
+}
+
+function updateGrade() {
+  const term = query.value.trim();
+  const matches = term ? listings.filter(listing => matchesQuery(listing, term)) : [];
+  const show = matches.length > 0 && matches.every(listing => listing.grader);
+  gradeField.hidden = !show;
+  grade.disabled = !show;
+  if (!show) grade.value = '';
 }
 
 function render() {
   const filters = Object.fromEntries(new FormData(form));
   const results = searchListings(listings, filters);
   reset.hidden = false;
-  status.textContent = `Найдено ${results.length} из ${listings.length} сохранённых объявлений`;
+  status.textContent = `Найдено ${results.length} из ${listings.length} вариантов в демо`;
   findings.replaceChildren();
 
   if (!results.length) {
     const empty = document.createElement('div');
     empty.className = 'empty';
-    empty.textContent = 'Совпадений нет. Попробуй Charizard ex, грейд PSA 9 или увеличь бюджет.';
+    const message = document.createElement('p');
+    message.textContent = 'В демо совпадений нет. Измени запрос или бюджет.';
+    empty.append(message);
+    if (filters.query.trim()) empty.append(ebayLink({ title: filters.query.trim(), sample: true }));
     findings.append(empty);
     return;
   }
@@ -65,13 +120,16 @@ function render() {
   results.forEach((finding, index) => {
     const { listing, percent } = finding;
     const row = document.createElement('article');
-    row.className = index === 0 ? 'listing featured' : 'listing';
+    row.className = index === 0 && filters.query.trim() ? 'listing featured' : 'listing';
     row.style.setProperty('--delay', `${index * 45}ms`);
     const info = document.createElement('div');
     const title = document.createElement('h3');
     title.textContent = listing.title;
     const tag = document.createElement('p');
-    tag.textContent = index === 0 ? 'Самая низкая цена среди результатов' : 'Цена объявления';
+    tag.textContent = listing.sample ? 'Пример · смоделированная цена' : 'Сохранённое объявление eBay';
+    const variant = document.createElement('p');
+    variant.className = 'variant';
+    variant.textContent = listing.variant ?? `${listing.grader} ${listing.grade} · ${listing.set_name}`;
     const price = document.createElement('strong');
     price.className = 'price';
     price.textContent = money(listing.price_cents);
@@ -80,11 +138,20 @@ function render() {
     comparison.textContent = percent === null ? 'Мало аналогов'
       : percent === 0 ? 'На уровне медианы'
       : `${percentFormat.format(Math.abs(percent))}% ${percent > 0 ? 'ниже' : 'выше'} медианы`;
-    info.append(tag, title, price, comparison);
+    info.append(tag, title, variant, price, comparison);
     row.append(info, ebayLink(listing), explain(finding));
     findings.append(row);
   });
 }
+
+query.addEventListener('input', updateGrade);
+document.querySelector('.examples').addEventListener('click', event => {
+  const example = event.target.closest('[data-query]');
+  if (!example || !listings.length) return;
+  query.value = example.dataset.query;
+  updateGrade();
+  render();
+});
 
 form.addEventListener('submit', event => {
   event.preventDefault();
@@ -97,13 +164,16 @@ form.addEventListener('submit', event => {
 });
 reset.addEventListener('click', () => {
   form.reset();
+  updateGrade();
   render();
 });
 
 try {
   const response = await fetch('./data/demo/charizard-psa9-source-observations.json');
   if (!response.ok) throw new Error('Listings cannot be loaded');
-  ({ observations: listings } = await response.json());
+  const { observations } = await response.json();
+  listings = [...observations, ...sampleProducts];
+  updateGrade();
   render();
   reset.hidden = true;
 } catch {

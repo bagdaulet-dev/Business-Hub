@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#110f21">
   <link rel="icon" href="data:,">
-  <title>CollectWatch — поиск коллекционных карточек</title>
+  <title>CollectWatch — поиск и сравнение товаров</title>
+  <meta name="collectwatch-explain-endpoint" content="">
   <link rel="stylesheet" href="./style.css">
   <script type="module" src="./app.mjs"></script>
 </head>
@@ -19,24 +20,27 @@
     <main>
       <section class="hero" aria-labelledby="title">
         <div class="intro">
-          <h1 id="title">Найди свою<br>карточку<span>.</span></h1>
-          <p>Сравни цены одной и той же версии Pokémon-карточки в сохранённых объявлениях eBay.</p>
+          <h1 id="title">Найди свою<br>вещь<span>.</span></h1>
+          <p>Сравни цены и характеристики, чтобы выбрать качественную вещь под свой бюджет.</p>
         </div>
-        <div class="display" aria-label="Иллюстрация карточки Charizard ex">
+        <div class="display" aria-hidden="true">
           <div class="halo"></div>
-          <div class="slab">
-            <div class="slab-label"><span>Charizard ex<br><small>Scarlet &amp; Violet 151</small></span><b>PSA 9</b></div>
-            <div class="art" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-            <div class="slab-foot"><span>Charizard ex</span><span>199 / 165</span></div>
-          </div>
+          <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>
+          <div class="prism"><div class="prism-top"></div><div class="prism-side"></div><div class="prism-front"><span class="lens"></span></div></div>
+          <span class="spark spark-a">✦</span><span class="spark spark-b">✧</span>
         </div>
       </section>
       <form id="hunt" class="hunt">
-        <label class="query">Карточка<input id="query" name="query" type="search" value="Charizard ex 199/165" placeholder="Например, Charizard ex" maxlength="100"></label>
-        <label>Грейд<select name="grade" id="grade"><option value="">Любой</option><option>PSA 8</option><option selected>PSA 9</option><option>PSA 10</option></select></label>
-        <label>Бюджет, $<input id="budget" name="budget" type="number" value="500" min="0" max="1000000" step="0.01" inputmode="decimal" placeholder="Любой"></label>
+        <label class="query">Что ищешь?<input id="query" name="query" type="search" placeholder="Название товара или модель" maxlength="100"></label>
+        <label>Бюджет, $<input id="budget" name="budget" type="number" min="0" max="1000000" step="0.01" inputmode="decimal" placeholder="Любой"></label>
         <button class="primary" type="submit"><span aria-hidden="true">⌕</span> Найти</button>
-        <p class="basis">Бюджет учитывает цену объявления без доставки и налогов.</p>
+        <label id="grade-field" hidden>Грейд карточки<select name="grade" id="grade" disabled><option value="">Любой</option><option>PSA 8</option><option>PSA 9</option><option>PSA 10</option></select></label>
+        <div class="examples"><span>Попробуй</span>
+          <button type="button" class="secondary" data-query="Sony WH-1000XM5">Наушники Sony</button>
+          <button type="button" class="secondary" data-query="Canon EOS R50">Камера Canon</button>
+          <button type="button" class="secondary" data-query="Charizard ex 199/165">Charizard ex</button>
+        </div>
+        <p class="basis">Бюджет учитывает цену без доставки и налогов.</p>
       </form>
       <section class="results" id="results" aria-labelledby="results-title">
         <div class="results-head">
@@ -48,7 +52,7 @@
     </main>
     <footer id="data">
       <strong>Об источниках</strong>
-      <p>Команда собрала наблюдения 15 ноября 2026 года из сохранённых страниц eBay разного возраста. Это цены предложений. Текущая доступность не подтверждена. Доставка для общего ZIP-кода не проверена.</p>
+      <p>Цены на наушники Sony и камеру Canon смоделированы для демо. Цены на Charizard взяты из сохранённых объявлений eBay, собранных 15 ноября 2026 года. Их текущая доступность и стоимость доставки не подтверждены.</p>
     </footer>
   </div>
 </body>
