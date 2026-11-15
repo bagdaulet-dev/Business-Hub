@@ -8,9 +8,7 @@ const paths=new Map([
   ['/index.html',['index.html','text/html; charset=utf-8']],
   ['/app.mjs',['app.mjs','text/javascript; charset=utf-8']],
   ['/style.css',['style.css','text/css; charset=utf-8']],
-  ['/search.mjs',['search.mjs','text/javascript; charset=utf-8']],
-  ['/data/demo/products.mjs',['data/demo/products.mjs','text/javascript; charset=utf-8']],
-  ['/data/demo/charizard-psa9-source-observations.json',['data/demo/charizard-psa9-source-observations.json','application/json; charset=utf-8']],
+  ['/assets/collectwatch-products.webp',['assets/collectwatch-products.webp','image/webp']],
 ]);
 
 export function createAppServer(options={}) {

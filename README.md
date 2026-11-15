@@ -1,44 +1,39 @@
 # CollectWatch
 
-CollectWatch is a mobile web demo for finding and comparing products. It runs on Node.js 22 and requires no packages. Standard search runs without an API key.
+CollectWatch compares archived eBay listings by product, price, year, and item location. The current AI server searches the Charizard fixture. Sony and Canon examples are the next catalog entries described in the [search UI spec](data/demo/TEAMMATE-SEARCH-UI-SPEC.md).
+
+## Run locally
+
+Use Node.js 22. The app requires no dependencies.
 
 ```sh
 npm start
 ```
 
-Open http://127.0.0.1:4173. The local server listens on the loopback interface.
+Open http://127.0.0.1:4173. For real model requests, provide the server variables in `.env.example` and run `node --env-file=.env server.mjs`. Keep credentials on the server.
 
-- Enter a product name. Model year and maximum price are optional. The year refers to the product's original release or edition.
-- Tap an example to fill in its name and year. Click **Search** to reveal results.
-- Sony and Canon use labeled simulated prices. For Charizard, choose PSA 9 and a maximum price of $500 to see five archived eBay listings. Open **Why this price?** on the $350 listing to see the $460 median from five other listings.
-- Search for a product outside the demo catalog to see the **Search eBay** link.
+## Search and comparisons
 
-Prices exclude shipping and tax. [Archived card data and limitations](data/demo/HANDOFF.txt).
+Choose an example or type a product query, then select **Search**. Use **Filters** to override the price, model year, or item location. **All countries** explicitly removes a location restriction. **Clear location** restores the default search behavior.
 
-Model years come from the [Sony WH-1000XM5 announcement](https://www.sony.co.uk/presscentre/sony-re-writes-the-rules-with-their-newest-industry-leading-noise-cancelling-headphones-introducing-the-wh-1000xm5), the [Canon EOS R50 announcement](https://www.usa.canon.com/newsroom/2023/20230207-camera), and the [Pokémon Scarlet & Violet 151 release](https://www.pokemon.com/us/pokemon-tcg/scarlet-violet-151).
+For the Charizard example with no manual filters, the $350 listing is 23.9% below the median of the five other archived prices. Selecting **United States** hides records whose location is unknown. **Price comparison** explains the result and links to each comparable listing. Prices exclude shipping, taxes, and duties.
 
-## Pokémon AI search
-
-**Search Pokémon with AI** uses the same-origin `POST /api/search` route. It sends the query and any selected budget or grade to the server for interpretation. The server applies the optional `modelYear` integer directly to its archived listings. It calculates price comparisons from the archive and displays the interpreted filters. Sony and Canon use standard search.
-
-Example request:
+The server accepts `POST /api/search` with `text` and optional `overrides`:
 
 ```json
-{"text":"Charizard ex 199/165 PSA 9 under $450, at least 15% below comparable offers","modelYear":2023}
+{"text":"Charizard ex 199/165 English PSA 9 under $200","overrides":{"max_price_cents":48000,"model_year":2023,"item_location_countries":["US"]}}
 ```
 
-Clients may still send `{"text":"..."}`. Successful responses include `rule`, `results`, `parserMode`, `dataMode`, and `warnings`. If supplied, `modelYear` is echoed as a separate filter. Year refers to the product's release or edition.
+The response includes `effectiveRule`, `overrideSources`, and `results`. The server applies structured overrides after validating the card parser response. The location and year can be supplied manually in this version. Extracting them from text and serving the electronics catalog require the generalized parser and engine. The archived electronics datasets remain available for that integration.
 
-For local mock verification, run `npm test`. The HTTP tests inject a completion without contacting a provider. The browser check uses the same injected server and requires Playwright and a local browser:
+## Verify locally
 
 ```sh
+npm test
+npm run build
 node tests/integration/browser-check.mjs
 ```
 
-For a configured environment, set the server-side variables from `.env.example` and run `node --env-file=.env server.mjs`. Vercel uses the repository's Node handler and static build. Use `npm run build` to verify the allowlisted assets.
+The browser check requires Playwright and a local Chromium installation. It uses an injected model completion for the archived Charizard data and a test response for the electronics rendering, without requests to the model provider.
 
-## Explanation API
-
-By default, **Why this price?** shows a local calculation. To connect a server, set the `collectwatch-explain-endpoint` meta tag in `index.html` to a same-origin path such as `/api/explain`.
-
-When a visitor opens an explanation, the browser sends a JSON POST with `title`, optional `variant`, `price_cents`, `comparable_prices_cents`, `median_cents` (or `null`), and `source` (`sample` or `snapshot`). Return an English response in the form `{"explanation":"Your explanation here."}`. If the request fails, the local calculation stays visible. Keep any provider key on the server.
+The hero uses original generated artwork with no listing photography. Ambient light and product tilt follow a mouse or trackpad. On touch devices the hero floats, and the interface responds to taps. Reduced-motion settings disable the animations.

@@ -1,11 +1,16 @@
 import {readFile} from 'node:fs/promises';
-import {runQuery} from '../engine/run-query.mjs';
+import {parseRule} from '../providers/rule-parser.mjs';
+import {evaluateRule} from '../engine/evaluate-rule.mjs';
 
 const fixtureUrl = new URL('../../data/demo/charizard-psa9-source-observations.json', import.meta.url);
 const MAX_BODY_BYTES = 8192;
+const supportedLocations = new Set(['US', 'JP', 'KR']);
+const overrideKeys = new Set(['max_price_cents', 'model_year', 'item_location_countries']);
 const messages = {
   INVALID_QUERY: 'Enter a search between 1 and 2,000 characters.',
-  INVALID_JSON: 'Send JSON containing text and, optionally, modelYear.',
+  INVALID_JSON: 'Send JSON containing text and optional overrides.',
+  INVALID_OVERRIDES: 'Check the year, price, or item location.',
+  UNSUPPORTED_PRODUCT: 'AI search for this model is not available yet.',
   INVALID_MODEL_YEAR: 'Model year must be a four-digit integer.',
   UNSUPPORTED_MEDIA_TYPE: 'Use Content-Type: application/json.',
   BODY_TOO_LARGE: 'The request is too large.',
@@ -63,6 +68,21 @@ function readBody(req, timeoutMs) {
   });
 }
 
+function validYear(year) {
+  return Number.isInteger(year) && year >= 1000 && year <= 9999;
+}
+
+function validOverrides(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  if (Object.keys(value).some(key => !overrideKeys.has(key))) return false;
+  if (Object.hasOwn(value, 'model_year') && !validYear(value.model_year)) return false;
+  if (Object.hasOwn(value, 'max_price_cents') &&
+      (!Number.isSafeInteger(value.max_price_cents) || value.max_price_cents < 0)) return false;
+  if (!Object.hasOwn(value, 'item_location_countries')) return true;
+  const countries = value.item_location_countries;
+  return Array.isArray(countries) && countries.every(code => supportedLocations.has(code));
+}
+
 /** Trusted fixture only. Request data never supplies listings, prices or provider config. */
 export function createSearchHandler({complete,requestTimeoutMs=5000,providerTimeoutMs=15000,
   maxConcurrent=2,maxAttemptsPerMinute=12}={}) {
@@ -91,29 +111,45 @@ export function createSearchHandler({complete,requestTimeoutMs=5000,providerTime
       let input;
       try{input=JSON.parse(raw);}catch{failure(res,400,'INVALID_JSON');return;}
       if(!input||Array.isArray(input)||typeof input!=='object'||
-        !Object.hasOwn(input,'text')||Object.keys(input).some(key=>key!=='text'&&key!=='modelYear')){failure(res,400,'INVALID_JSON');return;}
+        !Object.hasOwn(input,'text')||Object.keys(input).some(key=>key!=='text'&&key!=='modelYear'&&key!=='overrides')){failure(res,400,'INVALID_JSON');return;}
       if(typeof input.text!=='string'||!input.text.trim()||input.text.length>2000){failure(res,400,'INVALID_QUERY');return;}
-      const modelYear=input.modelYear;
-      if(Object.hasOwn(input,'modelYear')&&(!Number.isInteger(modelYear)||modelYear<1000||modelYear>9999)){
-        failure(res,400,'INVALID_MODEL_YEAR');return;
+      if (Object.hasOwn(input, 'modelYear') && !validYear(input.modelYear)) {
+        failure(res, 400, 'INVALID_MODEL_YEAR'); return;
+      }
+      const overrides = Object.hasOwn(input, 'overrides') ? input.overrides : {};
+      if (!validOverrides(overrides)) {
+        failure(res, 400, 'INVALID_OVERRIDES'); return;
+      }
+      const modelYear = overrides.model_year ?? input.modelYear;
+      const countries = overrides.item_location_countries && [...new Set(overrides.item_location_countries)];
+      if (/\bWH[- ]?1000XM5\b|\bEOS\s+R50\b/i.test(input.text)) {
+        failure(res, 422, 'UNSUPPORTED_PRODUCT'); return;
       }
       if(typeof complete!=='function'){failure(res,503,'PROVIDER_NOT_CONFIGURED');return;}
       // Read once per accepted request, from the server-owned path. No client paths.
       const {observations: fixture,model_year}=JSON.parse(await readFile(fixtureUrl,'utf8'));
-      const observations=modelYear===undefined||modelYear===model_year
-        ? fixture.map(item=>({...item,model_year})) : [];
+      const observations = modelYear !== undefined && modelYear !== model_year ? [] : fixture
+        .filter(item => !countries?.length || countries.includes(item.item_location_country_code))
+        .map(item => ({ ...item, model_year }));
       const beforeCall=Date.now();attempts=attempts.filter(time=>beforeCall-time<60000);
       // Recheck after asynchronous body read: concurrent requests can consume the last slot.
       if(attempts.length>=maxAttemptsPerMinute){res.setHeader('retry-after','60');failure(res,429,'TOO_MANY_REQUESTS');return;}
       attempts.push(beforeCall);
-      const output=await runQuery({text:input.text.trim(),observations,complete,timeoutMs:providerTimeoutMs});
+      const rule = await parseRule(input.text.trim(), { complete, timeoutMs: providerTimeoutMs });
+      const pricingRule = Object.hasOwn(overrides, 'max_price_cents')
+        ? { ...rule, max_price_cents: overrides.max_price_cents } : rule;
+      const output = evaluateRule(observations, pricingRule);
+      const effectiveRule = { ...pricingRule };
+      const overrideSources = Object.fromEntries(Object.keys(overrides).map(key => [key, 'manual']));
+      if (modelYear !== undefined) effectiveRule.model_year = modelYear;
+      if (countries) effectiveRule.item_location_countries = countries;
       const byId=new Map(observations.map(item=>[item.item_id,item]));
       const results=output.groups.flatMap(group=>group.findings.map(finding=>({
         listing:byId.get(finding.item_id),
         peers:finding.comparable_item_ids.map(id=>byId.get(id)).sort((a,b)=>a.price_cents-b.price_cents||a.item_id.localeCompare(b.item_id)),
         benchmark:finding.reference_price_cents,delta:finding.difference_cents,percent:finding.below_sample_median_pct,
       }))).sort((a,b)=>a.listing.price_cents-b.listing.price_cents||a.listing.item_id.localeCompare(b.listing.item_id));
-      sendJson(res,200,{rule:output.rule,results,...(modelYear===undefined?{}:{modelYear}),parserMode:'live-llm',dataMode:'historical_observations',
+      sendJson(res,200,{rule,effectiveRule,overrideSources,results,...(modelYear===undefined?{}:{modelYear}),parserMode:'live-llm',dataMode:'historical_observations',
         warnings:[...new Set([...output.warnings,...output.groups.flatMap(g=>g.warnings),
           'Historical cached observations from different dates; current availability is unverified.'])]});
     }catch(error){
