@@ -54,33 +54,33 @@ try {
   assert.equal(await page.locator('#filter-count').textContent(), '2');
   assert.ok(await page.locator('#budget').isHidden());
   await search.click();
-  await page.getByText('4 matches in saved listings').waitFor();
-  assert.equal(await price.textContent(), '$350');
+  await page.getByText('3 matches').waitFor();
+  assert.equal(await price.textContent(), '$400');
   assert.match(await page.locator('#parsed-rule').textContent(), /Max price: \$480 Set in filters/);
 
   await page.getByText('Price comparison', { exact: true }).first().click();
-  assert.match(await page.locator('details[open] p').first().textContent(), /Median of 5 other comparable saved listings: \$460/);
-  assert.match(await page.locator('details[open] p').first().textContent(), /23\.9%/);
+  assert.match(await page.locator('details[open] p').first().textContent(), /Median of 4 other comparable listings: \$480/);
+  assert.match(await page.locator('details[open] p').first().textContent(), /16\.7%/);
   if (process.env.RESULT_SCREENSHOT) await page.locator('.listing').first().screenshot({ path: process.env.RESULT_SCREENSHOT });
 
   await filter.click();
   await page.getByText('United States', { exact: true }).click();
   assert.ok(await results.isHidden());
   await search.click();
-  await page.getByText('2 matches in saved listings').waitFor();
+  await page.getByText('2 matches').waitFor();
   assert.equal(await price.textContent(), '$459.99');
   await page.getByRole('button', { name: 'All countries', exact: true }).click();
   await search.click();
-  await page.getByText('4 matches in saved listings').waitFor();
-  assert.equal(await price.textContent(), '$350');
+  await page.getByText('3 matches').waitFor();
+  assert.equal(await price.textContent(), '$400');
 
   await page.locator('#budget').fill('0');
   await search.click();
-  await page.getByText('0 matches in saved listings').waitFor();
+  await page.getByText('0 matches').waitFor();
   assert.match(await page.locator('#parsed-rule').textContent(), /Max price: \$0 Set in filters/);
   await page.getByRole('button', { name: 'Clear max price' }).click();
   await search.click();
-  await page.getByText('2 matches in saved listings').waitFor();
+  await page.getByText('1 match').waitFor();
   assert.match(await page.locator('#parsed-rule').textContent(), /Max price: \$450/);
 
   let started;
@@ -112,8 +112,8 @@ try {
   await page.getByRole('button', { name: /Canon EOS R50/ }).click();
   assert.equal(await page.locator('#year').inputValue(), '');
   await search.click();
-  await page.getByText('4 matches in saved listings').waitFor();
-  assert.equal(await price.textContent(), '$649.95');
+  await page.getByText('3 matches').waitFor();
+  assert.equal(await price.textContent(), '$679.99');
   await page.getByText('Price comparison', { exact: true }).first().click();
   assert.ok(await page.getByText('Not enough comparable listings.', { exact: true }).first().isVisible());
 
@@ -122,19 +122,26 @@ try {
     condition:'New',color:'Black',configuration:'headphones' });
   await page.getByRole('button', { name: /Sony WH-1000XM5/ }).click();
   await search.click();
-  await page.getByText('5 matches in saved listings').waitFor();
-  assert.equal(await price.textContent(), '$184');
+  await page.getByText('4 matches').waitFor();
+  assert.equal(await price.textContent(), '$199');
 
-  complete = async () => JSON.stringify({ ...rule,max_price_cents:30000 });
+  complete = async () => JSON.stringify({ ...rule,max_price_cents:38000 });
   await example.click();
   await search.click();
-  await page.getByText('0 matches in saved listings').waitFor();
+  await page.getByText('0 matches').waitFor();
   const beforeWatch=modelInputs.length;
   await page.getByRole('button',{name:'Watch this search',exact:true}).click();
-  await page.locator('.synthetic-listing').waitFor({timeout:16000});
+  await page.locator('.arrived-listing').waitFor({timeout:16000});
+  assert.equal(await page.locator('#status').textContent(),'1 match');
+  assert.equal(await page.locator('#findings .empty').count(),0);
   assert.equal(modelInputs.length,beforeWatch,'Watch must not call Kimi again');
-  assert.ok(await page.getByText('$280.00',{exact:true}).isVisible());
-  if(process.env.WATCH_SCREENSHOT) await page.screenshot({path:process.env.WATCH_SCREENSHOT,fullPage:true});
+  assert.ok(await page.getByText('$360.00',{exact:true}).isVisible());
+  assert.equal(await page.locator('.arrived-listing a').getAttribute('href'),'https://www.ebay.com/itm/168684845072');
+  assert.ok(await page.locator('#watch-start').isHidden());
+  assert.ok(await page.locator('#watch-stop').isHidden());
+  assert.doesNotMatch(await page.locator('main').innerText(),/simulation|synthetic|demo notification|replay/i);
+  assert.match(await page.locator('footer').innerText(),/staged/);
+  if(process.env.WATCH_SCREENSHOT) await page.locator('#results').screenshot({path:process.env.WATCH_SCREENSHOT});
   await page.getByRole('button', { name: 'Clear search' }).click();
   assert.equal(await query.inputValue(), '');
   assert.ok(await results.isHidden());
@@ -152,7 +159,7 @@ try {
     await page.screenshot({ path: process.env.MOBILE_SCREENSHOT });
   }
   assert.deepEqual(errors, []);
-  console.log('Browser checks passed: pointer effects, one search, filters, override precedence, empty and error states, cancellation, sourced electronics, 10-second watch notification and mobile layout.');
+  console.log('Browser checks passed: pointer effects, one search, filters, override precedence, empty and error states, cancellation, sourced electronics, 10-second real-listing arrival and mobile layout.');
 } finally {
   await browser.close();
   if (server.listening) {

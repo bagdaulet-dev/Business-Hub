@@ -17,10 +17,10 @@ test('HTTP uses server fixture, live parser tag, peers and price arithmetic with
   let calls=0;
   await withServer({complete:async({text})=>{calls++;assert.equal(text,'Charizard');return JSON.stringify(rule);}},async base=>{
     const response=await post(base,{text:'Charizard'});assert.equal(response.status,200);
-    const data=await response.json();assert.equal(data.results.length,2);
-    assert.equal(data.results[0].listing.price_cents,35000);assert.equal(data.results[0].benchmark,46000);
-    assert.equal(data.results[0].delta,11000);assert.equal(data.results[0].percent,23.91);
-    assert.equal(data.results[0].peers.length,5);assert.equal(data.parserMode,'live-llm');
+    const data=await response.json();assert.equal(data.results.length,1);
+    assert.equal(data.results[0].listing.price_cents,40000);assert.equal(data.results[0].benchmark,48000);
+    assert.equal(data.results[0].delta,8000);assert.equal(data.results[0].percent,16.67);
+    assert.equal(data.results[0].peers.length,4);assert.equal(data.watchArrivals[0].price_cents,36000);assert.ok(data.results.every(r=>r.listing.id!==data.watchArrivals[0].id));assert.equal(data.parserMode,'live-llm');
     assert.equal(data.dataMode,'historical_observations');assert.match(data.warnings.join(' '),/unverified/);
     const spoof=await post(base,{text:'Charizard',listings:[{price_cents:1}]});assert.equal(spoof.status,400);
     assert.equal(calls,1);
@@ -34,9 +34,9 @@ test('model year filters the server fixture and stays outside the provider promp
     assert.equal(valid.status, 200);
     const matches = await valid.json();
     assert.equal(matches.modelYear, 2023);
-    assert.equal(matches.results.length, 2);
+    assert.equal(matches.results.length, 1);
     assert.ok(matches.results.every(result => result.listing.model_year === 2023));
-    assert.equal(matches.results[0].benchmark, 46000);
+    assert.equal(matches.results[0].benchmark, 48000);
 
     const mismatch = await post(base, {text: 'Charizard', modelYear: 2022});
     assert.equal(mismatch.status, 200);
@@ -68,8 +68,8 @@ test('manual price and location filters take precedence in the saved catalog', a
     const expanded = await apply({ max_price_cents: 48000, model_year: 2023 });
     assert.equal(expanded.effectiveRule.max_price_cents, 48000);
     assert.equal(expanded.overrideSources.max_price_cents, 'manual');
-    assert.equal(expanded.results[0].listing.price_cents, 35000);
-    assert.equal(expanded.results[0].benchmark, 46000);
+    assert.equal(expanded.results[0].listing.price_cents, 40000);
+    assert.equal(expanded.results[0].benchmark, 48000);
 
     const us = await apply({ max_price_cents: 48000, item_location_countries: ['US', 'US'] });
     assert.deepEqual(us.effectiveRule.item_location_countries, ['US']);
@@ -78,7 +78,7 @@ test('manual price and location filters take precedence in the saved catalog', a
 
     const all = await apply({ max_price_cents: 48000, item_location_countries: [] });
     assert.deepEqual(all.effectiveRule.item_location_countries, []);
-    assert.equal(all.results[0].listing.price_cents, 35000);
+    assert.equal(all.results[0].listing.price_cents, 40000);
     assert.deepEqual((await apply({ max_price_cents: 0 })).results, []);
 
     for (const overrides of [null, [], { model_year: 2023.5 }, { max_price_cents: -1 },
@@ -175,7 +175,7 @@ test('Vercel pre-parsed body is supported and revalidated without stream reads',
     const res={setHeader(){},writeHead(code){status=code;},end(raw){payload=JSON.parse(raw);}};
     await handler(req,res);
     assert.equal(status,typeof body==='object'&&!Buffer.isBuffer(body)&&body.text.length>8192?413:200);
-    if(status===200)assert.equal(payload.results.length,2);
+    if(status===200)assert.equal(payload.results.length,1);
     else assert.equal(payload.error.code,'BODY_TOO_LARGE');
   }
   assert.equal(calls,3);

@@ -49,5 +49,21 @@ test('HTTP manual overrides win over parsed price, year, country and feed watchR
  const handler=createSearchHandler({complete:async()=>JSON.stringify(ai)});
  const req={method:'POST',headers:{'content-type':'application/json'},body:{text:'Sony WH-1000XM5',overrides:{max_price_cents:18400,model_year:2022,item_location_countries:['US']}},resume(){}};
  let status,payload;const res={setHeader(){},writeHead(s){status=s;},end(s){payload=JSON.parse(s);}};
- await handler(req,res);assert.equal(status,200);assert.equal(payload.results.length,1);assert.equal(payload.effectiveRule.model_year,2022);assert.equal(payload.watchRule.max_price_cents,18400);assert.deepEqual(payload.watchRule.item_location_countries,['US']);assert.equal(payload.overrideSources.model_year,'manual');assert.equal(payload.rule.max_price_cents,1);
+ await handler(req,res);assert.equal(status,200);assert.equal(payload.results.length,0);assert.equal(payload.watchArrivals[0].price_cents,18400);assert.equal(payload.effectiveRule.model_year,2022);assert.equal(payload.watchRule.max_price_cents,18400);assert.deepEqual(payload.watchRule.item_location_countries,['US']);assert.equal(payload.overrideSources.model_year,'manual');assert.equal(payload.rule.max_price_cents,1);
+});
+
+test('staged arrivals are genuine records withheld from the initial results at every budget',async()=>{
+ const {createSearchHandler}=await import('../../src/server/search-handler.mjs');
+ for(const [product_id,budget,arrival] of [['charizard-ex-199-165-psa9',38000,36000],['sony-wh1000xm5',19000,18400],['canon-eos-r50',66000,64995]]){
+  const handler=createSearchHandler({complete:async()=>JSON.stringify(rule(product_id,{max_price_cents:budget}))});
+  for(const overrides of [{},{max_price_cents:1000000}]){
+   const req={method:'POST',headers:{'content-type':'application/json'},body:{text:'query',overrides},resume(){}};
+   let payload;await handler(req,{setHeader(){},writeHead(s){assert.equal(s,200)},end(s){payload=JSON.parse(s)}});
+   const incoming=payload.watchArrivals[0];assert.equal(incoming.price_cents,arrival);assert.equal(incoming.synthetic,false);assert.equal(incoming.arrival_mode,'staged');
+   assert.equal(incoming.url,'https://www.ebay.com/itm/'+incoming.item_id);
+   assert.ok(payload.results.every(r=>r.listing.id!==incoming.id&&r.listing.id!=='900054604971'));
+   assert.ok(payload.results.every(r=>r.peers.every(p=>p.id!==incoming.id)));
+   if(!Object.keys(overrides).length)assert.equal(payload.results.length,0);
+  }
+ }
 });

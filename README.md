@@ -1,45 +1,47 @@
 # CollectWatch
 
-CollectWatch compares archived eBay listings by product, price, year, and item location. The AI server supports Charizard ex 199/165, Sony WH-1000XM5 and Canon EOS R50 using sourced historical observations. Kimi parses the query; deterministic code filters and compares prices. A page-local watch simulation demonstrates a delayed matching listing.
+Kimi interprets a product query. Deterministic code applies manual overrides and compares saved eBay observations for Charizard ex 199/165, Sony WH-1000XM5 and Canon EOS R50.
 
 ## Run locally
 
-Use Node.js 22. The app requires no dependencies.
+Node.js22, no runtime dependencies:
 
 ```sh
-npm start
+node --env-file=.env server.mjs
 ```
 
-Open http://127.0.0.1:4173. For real model requests, provide the server variables in `.env.example` and run `node --env-file=.env server.mjs`. Keep credentials on the server.
+Default URL:http://127.0.0.1:4173. PORT can override it. Server variables are listed in .env.example; never expose the key to the browser.
 
-## Search and comparisons
+## Presentation flow
 
-Choose an example or type a product query, then select **Search**. Use **Filters** to override the price, model year, or item location. **All countries** explicitly removes a location restriction. **Clear location** restores the default search behavior.
+One Search uses AI. Filters override extracted maximum USD price, model year and item-location countries. Empty/default countries follow the query; explicit All countries clears the location restriction.
 
-The Charizard example uses a $300 budget and intentionally has no initial matches. Increase the budget to $400 to see the $350 and $400 offers; the $350 listing is 23.9% below the median of the five other archived prices. Selecting **United States** hides records whose location is unknown. **Price comparison** explains the result and links to each comparable listing. Prices exclude shipping, taxes, and duties.
+Each example starts below the cheapest initial offer:
 
-The server accepts `POST /api/search` with `text` and optional `overrides`:
+| Query budget | Delayed real listing | Next initial price |
+|---|---:|---:|
+| Charizard under$380 | $360 | $400 |
+| Sony under$190 | $184 | $199 |
+| Canon under$660 | $649.95 | $679.99 |
 
-```json
-{"text":"Charizard ex 199/165 English PSA 9 under $200","overrides":{"max_price_cents":48000,"model_year":2023,"item_location_countries":["US"]}}
-```
+Search initially excludes the delayed item and excludes it from comparison peers. Watch this search reveals that unchanged real historical record after10seconds, if it matches the final conditions. View on eBay uses its original source URL. Stop watching pauses; Resume restarts the delay. After completion no Replay button is offered. Editing the search disposes the old watch.
 
-The response includes `effectiveRule`, `overrideSources`, `results`, and `watchRule`. The server applies structured overrides after validating the generalized parser response. Year and item-location countries can be extracted from text or overridden manually. Sony has eight fixed-price observations; comparisons stay within item-location groups. Canon has five historical candidates but no median because regional/warranty equivalence is unresolved. Unknown locations fail a nonempty country filter.
+The footer explains the data and timing: saved eBay listings, unverified current prices/availability, staged new-listing arrival. No invented products or prices are used. This is page-local presentation logic, not a live monitor or paid subscription. A closed/reloaded page loses the watch. No extra Kimi call occurs during the timer.
 
-## Watch simulation
+The old$350 Charizard observation remains in its archival source file but is excluded from the active catalog because its source could not be independently reopened. The delayed$360 listing has separate cached-page evidence in watch-scenarios.json. Date of retrieval does not establish current availability.
 
-After a successful search (including zero results), click **Watch this search**. After 10 seconds a fixed synthetic listing arrives: Charizard $280, Sony $180, or Canon $600, all simulated US locations. It produces an in-page notification only if it matches the saved effective conditions. Stop cancels the timer; Replay starts an explicit new run. Editing the search or filters clears the old watch. No extra model request occurs.
+## API and price comparison
 
-Synthetic offers are labelled, have no purchase link, and never enter the historical price baseline. This is a page-local simulation, not a paid subscription, background eBay polling, or external push notification. Minimum-discount conditions currently disable watch with an explanation. See [watch integration notes](src/engine/DEMO-WATCH-HANDOFF.md).
+POST /api/search accepts text and optional overrides:{max_price_cents,model_year,item_location_countries}. Returns rule,effectiveRule,overrideSources,results,watchRule and watchArrivals. Pending arrivals are included as explicit scenario data, but not as initial results or peers.
 
-## Verify locally
+Comparison excludes the current listing and needs at least three other eligible peers. Budget filters candidates, not peers. Sony comparisons stay within item-location groups. Canon has no median because regional/warranty equivalence remains unresolved. Shipping,taxes and duties are excluded. Minimum-discount constraints currently disable watch with an explanation.
+
+## Verification
 
 ```sh
-npm test
-npm run build
+node --test tests/engine/*.test.mjs tests/integration/server.test.mjs
+node build-static.mjs
 node tests/integration/browser-check.mjs
 ```
 
-The browser check requires Playwright and a local Chromium installation. It uses injected model completions with the real local HTTP/catalog path for all three products, plus a real ten-second watch timer, without requests to the model provider.
-
-The hero uses original generated artwork with no listing photography. Ambient light and product tilt follow a mouse or trackpad. On touch devices the hero floats, and the interface responds to taps. Reduced-motion settings disable the animations.
+Browser check requires Playwright and Chromium. It uses injected completions with the real local HTTP/catalog path, verifies filters and mobile layout, then waits for a real ten-second staged arrival and checks its original eBay link. No paid model calls are made by the test suite.

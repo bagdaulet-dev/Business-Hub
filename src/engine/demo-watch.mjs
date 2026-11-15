@@ -18,12 +18,17 @@ function validateRule(rule) {
   if (rule.item_location_countries !== undefined && (!Array.isArray(rule.item_location_countries) || rule.item_location_countries.some(c => !['US','JP','KR'].includes(c)))) invalid();
   if (rule.attributes !== undefined) attributes(rule.attributes);
 }
-function validateListing(listing, synthetic = false) {
+function validateListing(listing, staged = false) {
   if (!plain(listing) || typeof listing.id !== 'string' || !listing.id || !PRODUCTS.has(listing.product_id) || !money(listing.price_cents) || listing.currency !== 'USD' || listing.buying_option !== 'FIXED_PRICE') invalid();
   if (listing.model_year != null && (!Number.isInteger(listing.model_year) || listing.model_year < 1000 || listing.model_year > 9999)) invalid();
   if (listing.item_location_country_code != null && !['US','JP','KR'].includes(listing.item_location_country_code)) invalid();
   attributes(listing.attributes);
-  if (synthetic && (listing.synthetic !== true || listing.data_mode !== 'simulation' || listing.live_verified !== false || listing.url !== null || !listing.id.startsWith('demo-watch-'))) invalid();
+  if (staged) {
+    if (listing.synthetic !== false || listing.data_mode !== 'historical_observations' || listing.arrival_mode !== 'staged' || listing.live_verified !== false || listing.id !== listing.item_id || !/^\d+$/.test(listing.id)) invalid();
+    let url; try { url = new URL(listing.url); } catch { invalid(); }
+    if (url.protocol !== 'https:' || url.hostname !== 'www.ebay.com' || url.username || url.password ||
+      !(url.pathname === '/itm/' + listing.id || url.pathname.startsWith('/p/') && url.searchParams.get('iid') === listing.id)) invalid();
+  }
 }
 function matches(listing, rule) {
   return listing.product_id === rule.product_id
@@ -72,8 +77,8 @@ export function createDemoWatch({effectiveRule, initialListings = [], incomingLi
         if (matched) {
           results.push(listing);
           const notification = {id:`notification:${listing.id}`, listing_id:listing.id, product_id:listing.product_id,
-            price_cents:listing.price_cents, currency:'USD', synthetic:true, data_mode:'simulation',
-            title:'Demo: a new listing matches your saved search'};
+            price_cents:listing.price_cents, currency:'USD', synthetic:false, data_mode:'historical_observations', arrival_mode:'staged',
+            title:'A listing matches your saved search'};
           notifications.push(notification);
           events.push({type:'match_found', listing, notification});
         }

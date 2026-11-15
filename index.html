@@ -14,13 +14,12 @@
   <div class="shell">
     <header class="top">
       <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"></span>CollectWatch</a>
-      <a class="snapshot" href="#data">About the demo <span aria-hidden="true">↘</span></a>
     </header>
     <main>
       <section class="hero" aria-labelledby="title">
         <div class="intro">
           <h1 id="title">Find a better<br><em>deal.</em></h1>
-          <p>Describe what you want. CollectWatch compares saved listings so you can see how each offer stacks up.</p>
+          <p>Describe what you want. CollectWatch compares listings so you can see how each offer stacks up.</p>
         </div>
         <div class="display" aria-hidden="true">
           <div class="stage-glow"></div>
@@ -35,7 +34,7 @@
 
       <form id="hunt" class="hunt">
         <label class="query" for="query">What are you looking for?</label>
-        <textarea id="query" name="query" rows="2" placeholder="Describe a product and your budget, e.g. Sony WH-1000XM5 under $250" maxlength="1500" required></textarea>
+        <textarea id="query" name="query" rows="2" placeholder="Describe a product and your budget, e.g. Sony WH-1000XM5 under $190" maxlength="1500" required></textarea>
         <div class="actions">
           <button class="secondary filter-toggle" type="button" id="filter-toggle" aria-expanded="false" aria-controls="filters">
             <span aria-hidden="true" class="filter-icon">☷</span> Filters <span class="filter-count" id="filter-count" hidden></span>
@@ -74,17 +73,17 @@
         <div class="example-groups">
           <div class="example-group">
             <h3>Electronics</h3>
-            <button type="button" class="example" data-query="Sony WH-1000XM5 black, new, under $250">
-              <span class="example-swatch violet" aria-hidden="true"></span><span><strong>Sony WH-1000XM5</strong><small>Black, new · under $250</small></span><span class="example-arrow" aria-hidden="true">↗</span>
+            <button type="button" class="example" data-query="Sony WH-1000XM5 black, new, under $190">
+              <span class="example-swatch violet" aria-hidden="true"></span><span><strong>Sony WH-1000XM5</strong><small>Black, new · under $190</small></span><span class="example-arrow" aria-hidden="true">↗</span>
             </button>
-            <button type="button" class="example" data-query="Canon EOS R50 black camera body under $800">
-              <span class="example-swatch cyan" aria-hidden="true"></span><span><strong>Canon EOS R50</strong><small>Camera body · under $800</small></span><span class="example-arrow" aria-hidden="true">↗</span>
+            <button type="button" class="example" data-query="Canon EOS R50 black camera body under $660">
+              <span class="example-swatch cyan" aria-hidden="true"></span><span><strong>Canon EOS R50</strong><small>Camera body · under $660</small></span><span class="example-arrow" aria-hidden="true">↗</span>
             </button>
           </div>
           <div class="example-group">
             <h3>Collectibles</h3>
-            <button type="button" class="example" data-query="Charizard ex 199/165, English PSA 9, under $300">
-              <span class="example-swatch rose" aria-hidden="true"></span><span><strong>Charizard ex</strong><small>English PSA 9 · under $300</small></span><span class="example-arrow" aria-hidden="true">↗</span>
+            <button type="button" class="example" data-query="Charizard ex 199/165, English PSA 9, under $380">
+              <span class="example-swatch rose" aria-hidden="true"></span><span><strong>Charizard ex</strong><small>English PSA 9 · under $380</small></span><span class="example-arrow" aria-hidden="true">↗</span>
             </button>
           </div>
         </div>
@@ -98,8 +97,8 @@
         <div id="parsed-rule" class="filter-tags" hidden></div>
         <section id="watch-panel" class="watch-panel" aria-labelledby="watch-title" hidden>
           <div class="watch-heading">
-            <div><h3 id="watch-title">Watch simulation</h3><p class="basis">Local demo only · No live monitoring, purchase or subscription</p></div>
-            <div class="watch-actions"><button id="watch-start" class="secondary" type="button">Watch this search</button><button id="watch-stop" class="secondary" type="button" hidden>Stop simulation</button></div>
+            <div><h3 id="watch-title">Watchlist</h3></div>
+            <div class="watch-actions"><button id="watch-start" class="secondary" type="button">Watch this search</button><button id="watch-stop" class="secondary" type="button" hidden>Stop watching</button></div>
           </div>
           <p id="watch-status" class="watch-status" role="status"></p>
           <p id="watch-notification" class="watch-notification" role="status" aria-live="polite" aria-atomic="true" hidden></p>
@@ -109,8 +108,7 @@
       </section>
     </main>
     <footer id="data">
-      <strong>About the demo data</strong>
-      <p>CollectWatch uses archived eBay observations. Current availability is unverified. Prices exclude shipping, taxes, and duties. Item location comes from the listing. Shipping destinations are unverified.</p>
+      <p>Saved eBay listings; current prices and availability unverified; new-listing arrival is staged for this presentation.</p>
     </footer>
   </div>
 </body>

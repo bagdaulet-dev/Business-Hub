@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createDemoWatch, matchesWatchRule} from '../../src/engine/demo-watch.mjs';
 const scenario=JSON.parse(readFileSync(new URL('../../data/demo/watch-scenarios.json',import.meta.url))).scenarios[0].listing;
-const rule={product_id:scenario.product_id,max_price_cents:30000,model_year:2023,item_location_countries:['US'],attributes:{grade:9,language:'English'}};
+const rule={product_id:scenario.product_id,max_price_cents:scenario.price_cents+1000,model_year:2023,item_location_countries:['US'],attributes:{grade:9,language:'English'}};
 function setup(overrides={}) {
  const timers=[]; const events=[];
  const scheduler={setTimeout(fn,ms){timers.push({fn,ms,cancelled:false});return timers.length-1;},clearTimeout(id){timers[id].cancelled=true;}};
@@ -14,9 +14,9 @@ test('no match initially, explicit start schedules 10 seconds then emits labelle
  const {watch,timers,events}=setup();assert.equal(watch.getSnapshot().results.length,0);assert.equal(timers.length,0);
  assert.equal(watch.start(),true);assert.equal(watch.start(),false);assert.equal(timers.length,1);assert.equal(timers[0].ms,10000);
  assert.equal(watch.getSnapshot().notifications.length,0);timers[0].fn();
- assert.equal(watch.getSnapshot().results[0].price_cents,28000);assert.equal(watch.getSnapshot().notifications.length,1);
+ assert.equal(watch.getSnapshot().results[0].price_cents,scenario.price_cents);assert.equal(watch.getSnapshot().notifications.length,1);
  assert.ok(events.every(e=>e.data_mode==='simulation' && e.live_verified===false));
- assert.equal(events.find(e=>e.type==='match_found').listing.url,null);assert.equal(watch.start(),false);
+ assert.equal(events.find(e=>e.type==='match_found').listing.url,scenario.url);assert.equal(watch.start(),false);
 });
 test('existing qualifying offers show immediately without generating new-listing notifications',()=>{
  const initial={...scenario,id:'historical-350',price_cents:35000,synthetic:false,data_mode:'historical_observations'};
@@ -25,10 +25,10 @@ test('existing qualifying offers show immediately without generating new-listing
  watch.start();timers[0].fn();assert.equal(watch.getSnapshot().results.length,2);assert.equal(watch.getSnapshot().notifications.length,1);
 });
 test('fixed demo price is not lowered for budget; strict attributes, year and countries apply',()=>{
- for(const change of [{max_price_cents:27999},{max_price_cents:0},{model_year:2022},{item_location_countries:['JP']},{attributes:{grade:10}},{product_id:'sony-wh1000xm5'}]){
+ for(const change of [{max_price_cents:scenario.price_cents-1},{max_price_cents:0},{model_year:2022},{item_location_countries:['JP']},{attributes:{grade:10}},{product_id:'sony-wh1000xm5'}]){
   const {watch,timers}=setup({effectiveRule:{...rule,...change}});watch.start();timers[0].fn();assert.equal(watch.getSnapshot().notifications.length,0);
  }
- assert.equal(matchesWatchRule(scenario,{...rule,max_price_cents:28000}),true);
+ assert.equal(matchesWatchRule(scenario,{...rule,max_price_cents:scenario.price_cents}),true);
  assert.equal(matchesWatchRule(scenario,{...rule,item_location_countries:['JP','US']}),true);
  assert.equal(matchesWatchRule({...scenario,item_location_country_code:null},{...rule,item_location_countries:[]}),true);
  assert.equal(matchesWatchRule({...scenario,item_location_country_code:null},rule),false);
@@ -47,13 +47,13 @@ test('rule, data, emitted events and snapshots are isolated from consumer mutati
  const {watch,timers,events}=setup({effectiveRule:externalRule,incomingListings:[incoming]});
  externalRule.max_price_cents=0;incoming.price_cents=99999;watch.getSnapshot().effective_rule.max_price_cents=0;
  watch.start();timers[0].fn();const match=events.find(e=>e.type==='match_found');match.listing.price_cents=1;
- assert.equal(watch.getSnapshot().results[0].price_cents,28000);
+ assert.equal(watch.getSnapshot().results[0].price_cents,scenario.price_cents);
 });
-test('unsupported constraints and unlabelled or linked synthetic offers reject explicitly',()=>{
+test('unsupported constraints and unproven or unsafe staged offers reject explicitly',()=>{
  for(const effectiveRule of [{...rule,min_discount_pct:20},{...rule,max_price_cents:-1},{...rule,model_year:2023.5},{...rule,item_location_countries:'US'},{...rule,attributes:{unknown:'x'}}])assert.throws(()=>setup({effectiveRule}),{code:'INVALID_DEMO_WATCH_INPUT'});
- for(const change of [{synthetic:false},{url:'https://www.ebay.com/itm/123'},{price_cents:NaN},{price_cents:1.5},{live_verified:true},{id:'123'}])assert.throws(()=>setup({incomingListings:[{...scenario,...change}]}),{code:'INVALID_DEMO_WATCH_INPUT'});
+ for(const change of [{synthetic:true},{url:'https://www.ebay.com/itm/123'},{price_cents:NaN},{price_cents:1.5},{live_verified:true},{id:'123'}])assert.throws(()=>setup({incomingListings:[{...scenario,...change}]}),{code:'INVALID_DEMO_WATCH_INPUT'});
 });
-test('all three product scenarios match their saved rules and retain simulation labels',()=>{
+test('all three product scenarios match their saved rules and retain staged-arrival provenance',()=>{
  const {scenarios}=JSON.parse(readFileSync(new URL('../../data/demo/watch-scenarios.json',import.meta.url)));
  for(const {listing} of scenarios){
   const {watch,timers}=setup({effectiveRule:{product_id:listing.product_id,max_price_cents:listing.price_cents,attributes:listing.attributes},incomingListings:[listing]});

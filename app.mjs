@@ -16,7 +16,16 @@ const status = document.querySelector('#status');
 const parsed = document.querySelector('#parsed-rule');
 const findings = document.querySelector('#findings');
 const submit = document.querySelector('#search');
-const watchUi = createWatchUi(document.querySelector('#watch-panel'));
+let initialResultCount = 0;
+let arrivalCount = 0;
+const watchUi = createWatchUi(document.querySelector('#watch-panel'), {
+  onNewMatch() {
+    arrivalCount++;
+    const count = initialResultCount + arrivalCount;
+    status.textContent = `${count} ${count === 1 ? 'match' : 'matches'}`;
+    findings.querySelector('.empty')?.remove();
+  }
+});
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
 const percentFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
@@ -74,6 +83,8 @@ function clearFilters() {
 }
 
 function clearResults() {
+  initialResultCount = 0;
+  arrivalCount = 0;
   watchUi.clear();
   const previous = activeSearch;
   activeSearch = undefined;
@@ -131,7 +142,7 @@ function priceDetails({ listing, peers, benchmark, delta, percent }, countries) 
   } else {
     const difference = delta === 0 ? 'The price matches the median.'
       : `Difference: ${money(Math.abs(delta))} (${percentFormat.format(Math.abs(percent))}%) ${delta > 0 ? 'lower' : 'higher'}.`;
-    text.textContent = `Your price: ${money(listing.price_cents)}. Median of ${peers.length} other comparable saved listings: ${money(benchmark)}. ${difference}`;
+    text.textContent = `Your price: ${money(listing.price_cents)}. Median of ${peers.length} other comparable listings: ${money(benchmark)}. ${difference}`;
     const basis = document.createElement('p');
     basis.textContent = `Item price only. Shipping, taxes, and duties are excluded.${countries?.length ? ` Locations: ${locationLabel(countries)}.` : ''}`;
     const bars = document.createElement('ul');
@@ -157,6 +168,8 @@ function priceDetails({ listing, peers, benchmark, delta, percent }, countries) 
 
 function renderResults(payload) {
   const { results, rule, effectiveRule = rule, modelYear, overrideSources = {} } = payload;
+  initialResultCount = results.length;
+  arrivalCount = 0;
   const filters = { ...effectiveRule };
   if (filters.model_year == null && modelYear != null) filters.model_year = modelYear;
   const labels = {
@@ -173,11 +186,11 @@ function renderResults(payload) {
     appendTag(parsed, `${label}: ${shown}`, overrideSources[key] === 'manual' ? 'Set in filters' : '');
   }
   parsed.hidden = !parsed.childElementCount;
-  status.textContent = `${results.length} ${results.length === 1 ? 'match' : 'matches'} in saved listings`;
+  status.textContent = `${results.length} ${results.length === 1 ? 'match' : 'matches'}`;
   if (!results.length) {
     const empty = document.createElement('div');
     empty.className = 'empty';
-    empty.textContent = 'No saved listings match. Try a different model, location, year, or budget.';
+    empty.textContent = 'No listings match. Try a different model, location, year, or budget.';
     findings.append(empty);
     return;
   }
@@ -191,7 +204,7 @@ function renderResults(payload) {
     const title = document.createElement('h3');
     title.textContent = listing.title;
     const meta = document.createElement('p');
-    meta.textContent = 'Archived eBay listing · Availability unverified';
+    meta.textContent = 'eBay listing';
     const location = document.createElement('p');
     location.className = 'variant';
     location.textContent = [listing.model_year, listing.item_location_text ?? 'Location unknown'].filter(Boolean).join(' · ');
@@ -201,8 +214,8 @@ function renderResults(payload) {
     const comparison = document.createElement('span');
     comparison.className = percent > 0 ? 'comparison favorable' : 'comparison';
     comparison.textContent = percent == null ? 'Not enough comparable listings'
-      : percent === 0 ? 'At the saved median'
-      : `${percentFormat.format(Math.abs(percent))}% ${percent > 0 ? 'below' : 'above'} the saved median`;
+      : percent === 0 ? 'At the comparison median'
+      : `${percentFormat.format(Math.abs(percent))}% ${percent > 0 ? 'below' : 'above'} the comparison median`;
     info.append(meta, title, location, price, comparison);
     row.append(info, ebayLink(listing), priceDetails(finding, filters.item_location_countries));
     findings.append(row);
@@ -213,10 +226,10 @@ const errors = {
   INVALID_MODEL_YEAR: 'Enter a four-digit model year.',
   INVALID_OVERRIDES: 'Check the year, price, or item location and try again.',
   UNSUPPORTED_QUERY: 'This search condition is not supported. Edit your description and try again.',
-  UNSUPPORTED_PRODUCT: 'This product is not in the saved demo catalog. Try one of the examples.',
+  UNSUPPORTED_PRODUCT: 'This product is not in the catalog. Try one of the examples.',
   QUERY_NEEDS_CARD: 'Name a supported product or card, or try one of the examples.',
   PROVIDER_NOT_CONFIGURED: 'AI search is unavailable on this server.',
-  TOO_MANY_REQUESTS: 'The demo request limit was reached. Try again later.',
+  TOO_MANY_REQUESTS: 'The request limit was reached. Try again later.',
   PROVIDER_TIMEOUT: 'AI search timed out. Try again.'
 };
 
@@ -237,7 +250,7 @@ async function search(text, overrides) {
   submit.disabled = true;
   resultSection.hidden = false;
   resultSection.setAttribute('aria-busy', 'true');
-  status.textContent = 'Comparing saved listings…';
+  status.textContent = 'Comparing listings…';
   const heading = document.querySelector('#results-title');
   heading.focus({ preventScroll: true });
   heading.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });

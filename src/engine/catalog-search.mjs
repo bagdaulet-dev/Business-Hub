@@ -10,7 +10,11 @@ const median=values=>{values.sort((a,b)=>a-b);const m=Math.floor(values.length/2
 export async function loadCatalog(productId){
  const [file,year]=SOURCES[productId]??[];if(!file)throw new Error('UNSUPPORTED_PRODUCT');
  const data=JSON.parse(await readFile(new URL('../../data/demo/'+file,import.meta.url),'utf8'));
- return data.observations.filter(r=>r.buying_option==='FIXED_PRICE'&&r.listing_status!=='out_of_stock_in_cached_source').map(r=>{
+ const staged=JSON.parse(await readFile(new URL('../../data/demo/watch-scenarios.json',import.meta.url),'utf8'));
+ const excluded=new Set(staged.excluded_source_ids??[]);
+ const originals=data.observations.filter(row=>!excluded.has(row.item_id));
+ const additions=staged.scenarios.map(s=>s.listing).filter(r=>r.product_id===productId&&!originals.some(o=>o.item_id===r.item_id));
+ return [...originals,...additions].filter(r=>r.buying_option==='FIXED_PRICE'&&r.listing_status!=='out_of_stock_in_cached_source').map(r=>{
  const attributes=Object.fromEntries(ATTRIBUTE_KEYS.filter(k=>r[k]!=null).map(k=>[k,r[k]]));
  if(productId==='sony-wh1000xm5')attributes.configuration='headphones';
  return {...r,id:r.item_id,product_id:productId,model_year:year,attributes,shipping_cents:null,live_verified:false,data_mode:'historical_observations'};

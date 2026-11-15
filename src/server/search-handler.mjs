@@ -1,3 +1,4 @@
+import {readFile} from 'node:fs/promises';
 import {parseProductRule} from '../providers/product-rule-parser.mjs';
 import {loadCatalog,searchCatalog} from '../engine/catalog-search.mjs';
 const MAX_BODY_BYTES = 8192;
@@ -131,8 +132,12 @@ export function createSearchHandler({complete,requestTimeoutMs=5000,providerTime
       const overrideSources = Object.fromEntries(Object.keys(overrides).map(key => [key, 'manual']));
       if (input.modelYear !== undefined && overrides.model_year === undefined) overrideSources.model_year = 'manual';
       const observations = await loadCatalog(rule.product_id);
-      const output = searchCatalog(observations, effectiveRule);
-      sendJson(res,200,{rule,effectiveRule,overrideSources,...output,
+      // Fixed historical listing is withheld from the initial feed, never repriced.
+      const {scenarios} = JSON.parse(await readFile(new URL('../../data/demo/watch-scenarios.json', import.meta.url), 'utf8'));
+      const watchArrivals = scenarios.filter(s => s.listing.product_id === rule.product_id).map(s => s.listing);
+      const delayedIds = new Set(watchArrivals.map(item => item.id));
+      const output = searchCatalog(observations.filter(item => !delayedIds.has(item.id)), effectiveRule);
+      sendJson(res,200,{rule,effectiveRule,overrideSources,...output,watchArrivals,
         ...(effectiveRule.model_year===null?{}:{modelYear:effectiveRule.model_year}),
         parserMode:'live-llm',dataMode:'historical_observations'});
     }catch(error){
