@@ -4,7 +4,7 @@ import {request} from 'node:http';
 import {createAppServer} from '../../src/server/http.mjs';
 import {createSearchHandler} from '../../src/server/search-handler.mjs';
 
-const rule={card_name:'Charizard ex',card_number:'199/165',set_name:null,language:'English',grader:'PSA',finish:null,grade:9,max_price_cents:45000,min_discount_pct:null};
+const rule={product_id:'charizard-ex-199-165-psa9',model_year:null,item_location_countries:[],condition:null,color:null,configuration:null,card_name:'Charizard ex',card_number:'199/165',set_name:null,language:'English',grader:'PSA',finish:null,grade:9,max_price_cents:45000,min_discount_pct:null};
 async function withServer(options,run){
   const server=createAppServer(options);
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
@@ -87,16 +87,13 @@ test('manual price and location filters take precedence in the saved catalog', a
       assert.equal(invalid.status, 400);
       assert.equal((await invalid.json()).error.code, 'INVALID_OVERRIDES');
     }
-    const electronics = await post(base, { text: 'Sony WH-1000XM5 under $200' });
-    assert.equal(electronics.status, 422);
-    assert.equal((await electronics.json()).error.code, 'UNSUPPORTED_PRODUCT');
     assert.deepEqual(requests, [text, text, text, text]);
   });
 });
 
 test('strict static allowlist exposes app assets only; denies private paths and traversal',async()=>{
   await withServer({},async base=>{
-    for(const path of ['/','/index.html','/app.mjs','/style.css','/assets/collectwatch-products.webp']){
+    for(const path of ['/','/index.html','/app.mjs','/style.css','/assets/collectwatch-products.webp','/watch-ui.mjs','/src/engine/demo-watch.mjs','/data/demo/watch-scenarios.json']){
       const response=await fetch(base+path);assert.equal(response.status,200,path);assert.equal(response.headers.get('x-content-type-options'),'nosniff');
     }
     for(const path of ['/.env','/src/providers/telecom.mjs','/work/token','/.git/config','/server.mjs','/data/demo/HANDOFF.txt','/%2e%2e%2f.env','/%5c.env']){

@@ -7,6 +7,9 @@ const paths=new Map([
   ['/', ['index.html','text/html; charset=utf-8']],
   ['/index.html',['index.html','text/html; charset=utf-8']],
   ['/app.mjs',['app.mjs','text/javascript; charset=utf-8']],
+  ['/src/engine/demo-watch.mjs',['src/engine/demo-watch.mjs','text/javascript; charset=utf-8']],
+  ['/data/demo/watch-scenarios.json',['data/demo/watch-scenarios.json','application/json; charset=utf-8']],
+  ['/watch-ui.mjs',['watch-ui.mjs','text/javascript; charset=utf-8']],
   ['/style.css',['style.css','text/css; charset=utf-8']],
   ['/assets/collectwatch-products.webp',['assets/collectwatch-products.webp','image/webp']],
 ]);

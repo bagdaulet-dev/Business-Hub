@@ -1,6 +1,6 @@
 # Демонаблюдение: передача bagdaulet-dev
 
-Реализована только независимая логика: demo-watch.mjs, CLI demo-watch-cli.mjs, fixtures data/demo/watch-scenarios.json, tests/engine/demo-watch.test.mjs. HTTP endpoints, кнопка и уведомление на сайте ещё НЕ подключены. Не считать текущий localhost готовым UI этой функции.
+Первоначальная передача модуля (история): demo-watch.mjs, CLI demo-watch-cli.mjs, fixtures data/demo/watch-scenarios.json, tests/engine/demo-watch.test.mjs. Обновление: UI теперь подключён в watch-ui.mjs/app.mjs. Существующий /api/search отдаёт watchRule после общего AI-разбора и overrides. Клиент запускает page-local таймер и рисует уведомление; отдельный HTTP watch endpoint не нужен.
 
 ## Сценарий пользователя
 
@@ -47,9 +47,9 @@ initial results do not generate alerts. New IDs are deduplicated per watch; repe
 
 ## Integration ownership
 
-bagdaulet-dev owns UI and HTTP/server adapter. Choose one timer owner per watch, not separate UI+server timers. Existing server static whitelist/build do not automatically expose src/engine or the new JSON; explicitly adapt the build or server route. Do NOT assume fetch of src/engine/demo-watch.mjs is already supported. Keep secret-bearing provider code server-only. If watches are held server-side, isolate by session, bound their count/lifetime, cancel on cleanup; no promise of serverless/background durability. No deployment is required now.
+bagdaulet-dev owns UI and HTTP/server adapter. Choose one timer owner per watch, not separate UI+server timers. The static whitelist/build now explicitly includes watch-ui.mjs, src/engine/demo-watch.mjs and data/demo/watch-scenarios.json. Other src files remain private. Keep secret-bearing provider code server-only. If watches are held server-side, isolate by session, bound their count/lifetime, cancel on cleanup; no promise of serverless/background durability. No deployment is required now.
 
-aibarC owns engine and data. The current Kimi parser still uses a card-only schema; this module is ready for final normalized rules but does not make the multi-category parser implemented. Before connecting Sony/Canon natural-language watches, finish the previously agreed parser/overrides contract. For UI development use explicit example effectiveRules, clearly marked as fixtures.
+aibarC owns engine and data. Integration now uses product-rule-parser.mjs and catalog-search.mjs for all three products, including year/countries and manual overrides. Live Kimi searches for Charizard, Sony and Canon were checked once each. This is a small smoke check, not a model accuracy evaluation.
 
 ## Checks and demo
 
@@ -61,3 +61,5 @@ aibarC owns engine and data. The current Kimi parser still uses a card-only sche
 Other fixed synthetic examples: Sony$180, Canon$600. They remain fictional examples and are never represented as sourced eBay observations. Prices do not adapt to user's budget. CountryUS means JP-only searches correctly produce no alert in these three scenarios.
 
 Verified: real timer at10,004ms delivered one$280 notification after empty initial result. Earlier existing suite plus8 new tests:56passed; auction rejection subsequently added and all9 watch tests passed. No live model/eBay calls were needed.
+
+Current integration validation:65 automated engine/HTTP tests passed; browser checks cover real catalog paths, overrides, cancellation, mobile layouts and the delayed synthetic card. Live local Kimi:Charizard under300→0; Sony under250→5; Canon under800→4; live-parse Charizard watch→synthetic280 notification. Production was not redeployed.

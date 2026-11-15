@@ -127,6 +127,18 @@ details[open] .price-details { animation: arrive .35s both; }
 details[open] .bar { animation: fill .6s cubic-bezier(.2,.9,.2,1) both; }
 .empty { padding: 19px; border: 1px dashed var(--line); border-radius: 15px; color: var(--muted); animation: arrive .35s both; }
 .empty p { margin: 0 0 9px; }
+.watch-panel { margin-top: 18px; padding: 17px; border: 1px solid #b79bd15c; border-radius: 16px; background: #20192d; }
+.watch-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.watch-heading h3 { margin: 0 0 6px; font-size: 1rem; }
+.watch-heading .basis { margin: 0; max-width: 340px; line-height: 1.5; }
+.watch-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.watch-actions button:disabled { cursor: default; opacity: .6; }
+.watch-status { margin: 12px 0 0; color: var(--muted); font-size: .85rem; line-height: 1.55; }
+.watch-notification { margin: 13px 0 0; padding: 12px 14px; border-left: 3px solid var(--accent); border-radius: 8px; background: #35402d; color: #f0ffd9; font-size: .88rem; line-height: 1.55; overflow-wrap: anywhere; }
+#watch-arrivals:not(:empty) { margin-top: 13px; }
+.synthetic-listing { grid-template-columns: minmax(0,1fr); border-style: dashed; border-color: var(--accent); }
+.synthetic-listing .simulation-label { color: var(--accent); }
+.synthetic-listing .simulation-note { margin-top: 10px; max-width: 700px; line-height: 1.55; }
 footer { margin: 35px 0 0; padding: 16px 0 35px; border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem; line-height: 1.55; }
 footer p { max-width: 760px; margin: 5px 0 0; }
 @keyframes drift { to { transform: translate(9%,-5%) rotate(11deg) scale(1.13); } }

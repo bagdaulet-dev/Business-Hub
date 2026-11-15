@@ -7,6 +7,7 @@ const moduleName = process.env.PLAYWRIGHT_MODULE || 'playwright';
 const { chromium } = await import(moduleName.startsWith('/') ? pathToFileURL(moduleName).href : moduleName);
 const browser = await chromium.launch({ headless: true, executablePath: process.env.BROWSER_EXECUTABLE });
 const rule = {
+  product_id:'charizard-ex-199-165-psa9',model_year:null,item_location_countries:[],condition:null,color:null,configuration:null,
   card_name: 'Charizard ex', card_number: '199/165', set_name: null, language: 'English', grader: 'PSA',
   finish: null, grade: 9, max_price_cents: 45000, min_discount_pct: null
 };
@@ -104,28 +105,36 @@ try {
   await page.getByText('Search could not finish. Try again.', { exact: true }).waitFor();
   assert.ok(await page.getByRole('button', { name: 'Retry search' }).isVisible());
 
-  // Verify a representative future electronics response without making it a runtime fallback.
-  await page.route('**/api/search', async route => {
-    const request = route.request().postDataJSON();
-    assert.match(request.text, /Canon EOS R50/);
-    assert.equal(request.overrides, undefined);
-    await route.fulfill({ json: {
-      rule: { model: 'Canon EOS R50', model_year: 2023 },
-      results: [{
-        listing: { item_id: '334893883260', title: 'Canon EOS R50 Black Body Only', model_year: 2023,
-          item_location_text: 'Brooklyn, New York, United States', price_cents: 64995 },
-        peers: [], benchmark: null, delta: null, percent: null
-      }]
-    } });
-  });
+  // Real HTTP + sourced electronics catalog, with deterministic injected model output.
+  complete = async () => JSON.stringify({ ...rule, product_id:'canon-eos-r50', card_name:null,
+    card_number:null,language:null,grader:null,grade:null,max_price_cents:80000,
+    condition:'New',color:'Black',configuration:'body_only' });
   await page.getByRole('button', { name: /Canon EOS R50/ }).click();
   assert.equal(await page.locator('#year').inputValue(), '');
-  assert.ok(await results.isHidden());
   await search.click();
-  await page.getByText('1 match in saved listings').waitFor();
+  await page.getByText('4 matches in saved listings').waitFor();
   assert.equal(await price.textContent(), '$649.95');
-  await page.getByText('Price comparison', { exact: true }).click();
-  assert.ok(await page.getByText('Not enough comparable listings.', { exact: true }).isVisible());
+  await page.getByText('Price comparison', { exact: true }).first().click();
+  assert.ok(await page.getByText('Not enough comparable listings.', { exact: true }).first().isVisible());
+
+  complete = async () => JSON.stringify({ ...rule, product_id:'sony-wh1000xm5', card_name:null,
+    card_number:null,language:null,grader:null,grade:null,max_price_cents:25000,
+    condition:'New',color:'Black',configuration:'headphones' });
+  await page.getByRole('button', { name: /Sony WH-1000XM5/ }).click();
+  await search.click();
+  await page.getByText('5 matches in saved listings').waitFor();
+  assert.equal(await price.textContent(), '$184');
+
+  complete = async () => JSON.stringify({ ...rule,max_price_cents:30000 });
+  await example.click();
+  await search.click();
+  await page.getByText('0 matches in saved listings').waitFor();
+  const beforeWatch=modelInputs.length;
+  await page.getByRole('button',{name:'Watch this search',exact:true}).click();
+  await page.locator('.synthetic-listing').waitFor({timeout:16000});
+  assert.equal(modelInputs.length,beforeWatch,'Watch must not call Kimi again');
+  assert.ok(await page.getByText('$280.00',{exact:true}).isVisible());
+  if(process.env.WATCH_SCREENSHOT) await page.screenshot({path:process.env.WATCH_SCREENSHOT,fullPage:true});
   await page.getByRole('button', { name: 'Clear search' }).click();
   assert.equal(await query.inputValue(), '');
   assert.ok(await results.isHidden());
@@ -143,7 +152,7 @@ try {
     await page.screenshot({ path: process.env.MOBILE_SCREENSHOT });
   }
   assert.deepEqual(errors, []);
-  console.log('Browser checks passed: pointer effects, one search, filters, override precedence, empty and error states, cancellation, electronics UI and mobile layout.');
+  console.log('Browser checks passed: pointer effects, one search, filters, override precedence, empty and error states, cancellation, sourced electronics, 10-second watch notification and mobile layout.');
 } finally {
   await browser.close();
   if (server.listening) {

@@ -1,8 +1,5 @@
-import {readFile} from 'node:fs/promises';
-import {parseRule} from '../providers/rule-parser.mjs';
-import {evaluateRule} from '../engine/evaluate-rule.mjs';
-
-const fixtureUrl = new URL('../../data/demo/charizard-psa9-source-observations.json', import.meta.url);
+import {parseProductRule} from '../providers/product-rule-parser.mjs';
+import {loadCatalog,searchCatalog} from '../engine/catalog-search.mjs';
 const MAX_BODY_BYTES = 8192;
 const supportedLocations = new Set(['US', 'JP', 'KR']);
 const overrideKeys = new Set(['max_price_cents', 'model_year', 'item_location_countries']);
@@ -122,39 +119,26 @@ export function createSearchHandler({complete,requestTimeoutMs=5000,providerTime
       }
       const modelYear = overrides.model_year ?? input.modelYear;
       const countries = overrides.item_location_countries && [...new Set(overrides.item_location_countries)];
-      if (/\bWH[- ]?1000XM5\b|\bEOS\s+R50\b/i.test(input.text)) {
-        failure(res, 422, 'UNSUPPORTED_PRODUCT'); return;
-      }
       if(typeof complete!=='function'){failure(res,503,'PROVIDER_NOT_CONFIGURED');return;}
-      // Read once per accepted request, from the server-owned path. No client paths.
-      const {observations: fixture,model_year}=JSON.parse(await readFile(fixtureUrl,'utf8'));
-      const observations = modelYear !== undefined && modelYear !== model_year ? [] : fixture
-        .filter(item => !countries?.length || countries.includes(item.item_location_country_code))
-        .map(item => ({ ...item, model_year }));
       const beforeCall=Date.now();attempts=attempts.filter(time=>beforeCall-time<60000);
       // Recheck after asynchronous body read: concurrent requests can consume the last slot.
       if(attempts.length>=maxAttemptsPerMinute){res.setHeader('retry-after','60');failure(res,429,'TOO_MANY_REQUESTS');return;}
       attempts.push(beforeCall);
-      const rule = await parseRule(input.text.trim(), { complete, timeoutMs: providerTimeoutMs });
-      const pricingRule = Object.hasOwn(overrides, 'max_price_cents')
-        ? { ...rule, max_price_cents: overrides.max_price_cents } : rule;
-      const output = evaluateRule(observations, pricingRule);
-      const effectiveRule = { ...pricingRule };
-      const overrideSources = Object.fromEntries(Object.keys(overrides).map(key => [key, 'manual']));
+      const rule = await parseProductRule(input.text.trim(), { complete, timeoutMs: providerTimeoutMs });
+      const effectiveRule = { ...rule, ...overrides };
       if (modelYear !== undefined) effectiveRule.model_year = modelYear;
       if (countries) effectiveRule.item_location_countries = countries;
-      const byId=new Map(observations.map(item=>[item.item_id,item]));
-      const results=output.groups.flatMap(group=>group.findings.map(finding=>({
-        listing:byId.get(finding.item_id),
-        peers:finding.comparable_item_ids.map(id=>byId.get(id)).sort((a,b)=>a.price_cents-b.price_cents||a.item_id.localeCompare(b.item_id)),
-        benchmark:finding.reference_price_cents,delta:finding.difference_cents,percent:finding.below_sample_median_pct,
-      }))).sort((a,b)=>a.listing.price_cents-b.listing.price_cents||a.listing.item_id.localeCompare(b.listing.item_id));
-      sendJson(res,200,{rule,effectiveRule,overrideSources,results,...(modelYear===undefined?{}:{modelYear}),parserMode:'live-llm',dataMode:'historical_observations',
-        warnings:[...new Set([...output.warnings,...output.groups.flatMap(g=>g.warnings),
-          'Historical cached observations from different dates; current availability is unverified.'])]});
+      const overrideSources = Object.fromEntries(Object.keys(overrides).map(key => [key, 'manual']));
+      if (input.modelYear !== undefined && overrides.model_year === undefined) overrideSources.model_year = 'manual';
+      const observations = await loadCatalog(rule.product_id);
+      const output = searchCatalog(observations, effectiveRule);
+      sendJson(res,200,{rule,effectiveRule,overrideSources,...output,
+        ...(effectiveRule.model_year===null?{}:{modelYear:effectiveRule.model_year}),
+        parserMode:'live-llm',dataMode:'historical_observations'});
     }catch(error){
       const code=error?.code;
-      if(code==='BODY_TOO_LARGE')failure(res,413,code);
+      if(code==='UNSUPPORTED_PRODUCT')failure(res,422,code);
+      else if(code==='BODY_TOO_LARGE')failure(res,413,code);
       else if(code==='REQUEST_TIMEOUT')failure(res,408,code);
       else if(['INVALID_QUERY','INVALID_JSON','UNSUPPORTED_QUERY','QUERY_NEEDS_CARD'].includes(code))failure(res,400,code);
       else if(code==='PROVIDER_NOT_CONFIGURED')failure(res,503,code);

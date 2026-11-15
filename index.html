@@ -73,7 +73,7 @@
         <h2 id="examples-title">Try an example</h2>
         <div class="example-groups">
           <div class="example-group">
-            <h3>Electronics <span class="coming-next">Coming next</span></h3>
+            <h3>Electronics</h3>
             <button type="button" class="example" data-query="Sony WH-1000XM5 black, new, under $250">
               <span class="example-swatch violet" aria-hidden="true"></span><span><strong>Sony WH-1000XM5</strong><small>Black, new · under $250</small></span><span class="example-arrow" aria-hidden="true">↗</span>
             </button>
@@ -83,8 +83,8 @@
           </div>
           <div class="example-group">
             <h3>Collectibles</h3>
-            <button type="button" class="example" data-query="Charizard ex 199/165, English PSA 9, under $450, at least 15% below comparable offers">
-              <span class="example-swatch rose" aria-hidden="true"></span><span><strong>Charizard ex</strong><small>English PSA 9 · under $450</small></span><span class="example-arrow" aria-hidden="true">↗</span>
+            <button type="button" class="example" data-query="Charizard ex 199/165, English PSA 9, under $300">
+              <span class="example-swatch rose" aria-hidden="true"></span><span><strong>Charizard ex</strong><small>English PSA 9 · under $300</small></span><span class="example-arrow" aria-hidden="true">↗</span>
             </button>
           </div>
         </div>
@@ -96,6 +96,15 @@
           <button type="button" id="reset" class="secondary">Clear search</button>
         </div>
         <div id="parsed-rule" class="filter-tags" hidden></div>
+        <section id="watch-panel" class="watch-panel" aria-labelledby="watch-title" hidden>
+          <div class="watch-heading">
+            <div><h3 id="watch-title">Watch simulation</h3><p class="basis">Local demo only · No live monitoring, purchase or subscription</p></div>
+            <div class="watch-actions"><button id="watch-start" class="secondary" type="button">Watch this search</button><button id="watch-stop" class="secondary" type="button" hidden>Stop simulation</button></div>
+          </div>
+          <p id="watch-status" class="watch-status" role="status"></p>
+          <p id="watch-notification" class="watch-notification" role="status" aria-live="polite" aria-atomic="true" hidden></p>
+          <div id="watch-arrivals"></div>
+        </section>
         <div id="findings"></div>
       </section>
     </main>

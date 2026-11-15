@@ -1,3 +1,5 @@
+import {createWatchUi} from './watch-ui.mjs';
+
 const form = document.querySelector('#hunt');
 const query = form.elements.query;
 const year = form.elements.year;
@@ -14,6 +16,7 @@ const status = document.querySelector('#status');
 const parsed = document.querySelector('#parsed-rule');
 const findings = document.querySelector('#findings');
 const submit = document.querySelector('#search');
+const watchUi = createWatchUi(document.querySelector('#watch-panel'));
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
 const percentFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
@@ -71,6 +74,7 @@ function clearFilters() {
 }
 
 function clearResults() {
+  watchUi.clear();
   const previous = activeSearch;
   activeSearch = undefined;
   previous?.abort();
@@ -209,8 +213,8 @@ const errors = {
   INVALID_MODEL_YEAR: 'Enter a four-digit model year.',
   INVALID_OVERRIDES: 'Check the year, price, or item location and try again.',
   UNSUPPORTED_QUERY: 'This search condition is not supported. Edit your description and try again.',
-  UNSUPPORTED_PRODUCT: 'AI search for this product is coming later. Try the Charizard example.',
-  QUERY_NEEDS_CARD: 'This version supports AI search for Pokémon cards. Try the Charizard example.',
+  UNSUPPORTED_PRODUCT: 'This product is not in the saved demo catalog. Try one of the examples.',
+  QUERY_NEEDS_CARD: 'Name a supported product or card, or try one of the examples.',
   PROVIDER_NOT_CONFIGURED: 'AI search is unavailable on this server.',
   TOO_MANY_REQUESTS: 'The demo request limit was reached. Try again later.',
   PROVIDER_TIMEOUT: 'AI search timed out. Try again.'
@@ -253,6 +257,7 @@ async function search(text, overrides) {
     }
     if (!Array.isArray(payload.results) || !payload.rule) throw new Error('Invalid search response');
     renderResults(payload);
+    watchUi.offer(payload);
   } catch {
     if (activeSearch === controller) {
       showError(controller.signal.aborted ? 'AI search timed out. Try again.' : 'Search could not finish. Try again.');
