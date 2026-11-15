@@ -20,7 +20,7 @@ test('HTTP uses server fixture, live parser tag, peers and price arithmetic with
     const data=await response.json();assert.equal(data.results.length,1);
     assert.equal(data.results[0].listing.price_cents,40000);assert.equal(data.results[0].benchmark,48000);
     assert.equal(data.results[0].delta,8000);assert.equal(data.results[0].percent,16.67);
-    assert.equal(data.results[0].peers.length,4);assert.equal(data.watchArrivals[0].price_cents,36000);assert.ok(data.results.every(r=>r.listing.id!==data.watchArrivals[0].id));assert.equal(data.parserMode,'live-llm');
+    assert.equal(data.results[0].peers.length,4);assert.equal(data.watchArrivals[0].price_cents,37500);assert.ok(data.results.every(r=>r.listing.id!==data.watchArrivals[0].id));assert.equal(data.parserMode,'live-llm');
     assert.equal(data.dataMode,'historical_observations');assert.match(data.warnings.join(' '),/unverified/);
     const spoof=await post(base,{text:'Charizard',listings:[{price_cents:1}]});assert.equal(spoof.status,400);
     assert.equal(calls,1);

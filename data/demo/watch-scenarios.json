@@ -5,8 +5,66 @@
   "arrival_mode": "staged",
   "delay_ms": 10000,
   "purpose": "Replay real cached source listings after a staged delay, not newly discovered live listings. No fabricated products or prices.",
-  "matching_policy": "Exclude each staged item ID from the initial feed. After 10 seconds evaluate unchanged source price and attributes against the saved final query. Notify only on a match.",
+  "matching_policy": "Exclude all staged item IDs from initial results and peers. Charizard arrives at 10s ($375) and 15s ($360); electronics have a single arrival at 10s. Prices are unchanged source observations.",
   "scenarios": [
+    {
+      "id": "staged-arrival-407179292527",
+      "initial_feed_exclude_item_id": "407179292527",
+      "example_max_price_cents": 38000,
+      "listing": {
+        "id": "407179292527",
+        "item_id": "407179292527",
+        "product_id": "charizard-ex-199-165-psa9",
+        "url": "https://www.ebay.com/itm/407179292527",
+        "original_url": "https://www.ebay.com/itm/407179292527",
+        "title": "Charizard ex 199/165 Special Illustration Rare PSA 9 SV 151 EN",
+        "price_cents": 37500,
+        "currency": "USD",
+        "buying_option": "FIXED_PRICE",
+        "seller_name": "bl4z3dripp3r",
+        "certification_number": "125546180",
+        "model_year": 2023,
+        "card_name": "Charizard ex",
+        "card_number": "199/165",
+        "set_name": "Scarlet & Violet 151",
+        "language": "English",
+        "grader": "PSA",
+        "grade": 9,
+        "finish": "Special Illustration Rare Holo",
+        "condition": "Graded - PSA 9",
+        "shipping_cents": null,
+        "item_location_country_code": "US",
+        "item_location_text": "San Antonio, TX, United States",
+        "item_location_evidence": {
+          "source_url": "https://www.ebay.com/itm/407179292527",
+          "evidence_excerpt": "Located in: San Antonio, TX, United States",
+          "retrieved_date": "2026-11-15",
+          "cache_age": "2 weeks ago"
+        },
+        "synthetic": false,
+        "data_mode": "historical_observations",
+        "arrival_mode": "staged",
+        "live_verified": false,
+        "source_capture_time": null,
+        "retrieved_date": "2026-11-15",
+        "cache_age": "2 weeks ago",
+        "evidence_type": "cached_listing_page",
+        "source_evidence_excerpt": "US $375.00; Buy It Now; English; PSA 9",
+        "source_notes": "Individual page was opened via web click from eBay results (tool reference turn49view0, 636 lines). Price line75, buy-now95, item location115, English282, card name294, number317, Holo323, grade329, certificate335. Subsequent direct open returned inaccessible; this does not establish present stock or price. Model year2023 comes from the existing card-model metadata, not a manufacture-year assertion on this listing. Normalized finish combines explicit SIR rarity and Holo finish. Cached shipping $6.12 to60602 is not common-destination cost.",
+        "listing_status": "appeared_available_in_cached_source",
+        "current_listing_status": null,
+        "attributes": {
+          "card_name": "Charizard ex",
+          "card_number": "199/165",
+          "set_name": "Scarlet & Violet 151",
+          "language": "English",
+          "grader": "PSA",
+          "grade": 9,
+          "finish": "Special Illustration Rare Holo"
+        },
+        "arrival_after_ms": 10000
+      }
+    },
     {
       "id": "staged-arrival-168684845072",
       "initial_feed_exclude_item_id": "168684845072",
@@ -63,7 +121,8 @@
         "original_url": "https://www.ebay.com/itm/168684845072",
         "synthetic": false,
         "data_mode": "historical_observations",
-        "arrival_mode": "staged"
+        "arrival_mode": "staged",
+        "arrival_after_ms": 15000
       }
     },
     {
@@ -119,7 +178,8 @@
         "original_url": "https://www.ebay.com/itm/377184719616",
         "synthetic": false,
         "data_mode": "historical_observations",
-        "arrival_mode": "staged"
+        "arrival_mode": "staged",
+        "arrival_after_ms": 10000
       }
     },
     {
@@ -196,7 +256,8 @@
         "original_url": "https://www.ebay.com/itm/334893883260",
         "synthetic": false,
         "data_mode": "historical_observations",
-        "arrival_mode": "staged"
+        "arrival_mode": "staged",
+        "arrival_after_ms": 10000
       }
     }
   ],

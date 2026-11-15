@@ -133,10 +133,15 @@ try {
   await page.getByRole('button',{name:'Watch this search',exact:true}).click();
   await page.locator('.arrived-listing').waitFor({timeout:16000});
   assert.equal(await page.locator('#status').textContent(),'1 match');
+  assert.equal(await page.locator('.arrived-listing .price').first().textContent(),'$375.00');
+  assert.ok(await page.locator('#watch-stop').isVisible());
+  await page.waitForFunction(()=>document.querySelectorAll('.arrived-listing').length===2,{},{timeout:8000});
+  assert.equal(await page.locator('#status').textContent(),'2 matches');
+  assert.deepEqual(await page.locator('.arrived-listing .price').allTextContents(),['$360.00','$375.00']);
   assert.equal(await page.locator('#findings .empty').count(),0);
   assert.equal(modelInputs.length,beforeWatch,'Watch must not call Kimi again');
   assert.ok(await page.getByText('$360.00',{exact:true}).isVisible());
-  assert.equal(await page.locator('.arrived-listing a').getAttribute('href'),'https://www.ebay.com/itm/168684845072');
+  assert.equal(await page.locator('.arrived-listing a').first().getAttribute('href'),'https://www.ebay.com/itm/168684845072');
   assert.ok(await page.locator('#watch-start').isHidden());
   assert.ok(await page.locator('#watch-stop').isHidden());
   assert.doesNotMatch(await page.locator('main').innerText(),/simulation|synthetic|demo notification|replay/i);
@@ -159,7 +164,7 @@ try {
     await page.screenshot({ path: process.env.MOBILE_SCREENSHOT });
   }
   assert.deepEqual(errors, []);
-  console.log('Browser checks passed: pointer effects, one search, filters, override precedence, empty and error states, cancellation, sourced electronics, 10-second real-listing arrival and mobile layout.');
+  console.log('Browser checks passed: pointer effects, one search, filters, override precedence, empty and error states, cancellation, sourced electronics, 10s/15s real arrivals sorted by price and mobile layout.');
 } finally {
   await browser.close();
   if (server.listening) {

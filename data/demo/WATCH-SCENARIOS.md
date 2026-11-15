@@ -17,3 +17,9 @@ Charizard дополнительно проверен по индивидуал�
 Точная дата фиксации источников неизвестна, доступность сейчас не подтверждена. Доставка `null`, налоги и пошлины не включены. Год электроники — год модели, не дата изготовления экземпляра. Данные не подтверждают оплату подписки или фактическую отправку email/Telegram. Маркировать уведомление как демонстрационное появление сохранённого объявления, а не новый товар, найденный сейчас.
 
 `excluded_source_ids:["900054604971"]` явно исключает старый $350 из runtime; исходная запись остаётся архивной. Координатор интеграции объединяет реальные staged-записи с каталогом по `item_id`, затем исключает staged-ID только из начального этапа появления. $360 подтверждён индивидуальной кэшированной страницей, не подменён вымышленной ценой.
+
+## Two-arrival presentation update
+
+Charizard uses two real cached records:407179292527 at$375 after10seconds, then168684845072 at$360 after15seconds total. Both are withheld from initial results and peers. Budget$380 matches both; cheaper second arrival moves above the first. No$316price has been fabricated. The first source was previously opened as a full cached listing; repeat direct access was unavailable, as documented in its provenance.
+
+Electronics examples now use Sony$200 and Canon$800 so existing offers appear immediately, demonstrating comparison/country filters without requiring another watch run. Their delayed arrivals still work.

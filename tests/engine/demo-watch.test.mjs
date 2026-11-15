@@ -69,3 +69,80 @@ test('auction starting bids and unspecified buying options cannot become watch m
   assert.throws(()=>setup({initialListings:[listing]}),{code:'INVALID_DEMO_WATCH_INPUT'});
  }
 });
+
+function sequentialSetup(options={}) {
+ let time=0,seq=0;
+ const tasks=new Map(),events=[];
+ const scheduler={now:()=>time,setTimeout(fn,ms){const id=++seq;tasks.set(id,{id,fn,ms,at:time+ms,cancelled:false});return id;},
+  clearTimeout(id){if(tasks.has(id))tasks.get(id).cancelled=true;}};
+ const first={...scenario,arrival_after_ms:10000};
+ const second={...scenario,id:'999000000002',item_id:'999000000002',url:'https://www.ebay.com/itm/999000000002',price_cents:scenario.price_cents-1000,arrival_after_ms:15000};
+ const watch=createDemoWatch({effectiveRule:rule,incomingListings:[first,second],onEvent:e=>events.push(e),scheduler,...options});
+ function advance(ms){
+  const target=time+ms;
+  for(;;){
+   const task=[...tasks.values()].filter(x=>!x.cancelled&&!x.fired&&x.at<=target).sort((a,b)=>a.at-b.at||a.id-b.id)[0];
+   if(!task)break;
+   time=task.at;task.fired=true;task.fn();
+  }
+  time=target;
+ }
+ return {watch,events,tasks,advance,first,second};
+}
+
+test('absolute 10s and 15s arrivals notify separately, sort by price and complete exactly once',()=>{
+ const {watch,events,tasks,advance,first,second}=sequentialSetup();
+ watch.start();advance(9999);assert.equal(watch.getSnapshot().results.length,0);
+ advance(1);assert.equal(watch.getSnapshot().notifications.length,1);assert.equal(watch.getSnapshot().status,'watching');
+ assert.equal(watch.getSnapshot().pending_count,1);assert.equal(events.filter(e=>e.type==='completed').length,0);
+ assert.equal([...tasks.values()].at(-1).ms,5000);
+ advance(4999);assert.equal(watch.getSnapshot().notifications.length,1);
+ advance(1);assert.deepEqual(watch.getSnapshot().results.map(x=>x.id),[second.id,first.id]);
+ assert.equal(watch.getSnapshot().notifications.length,2);assert.equal(watch.getSnapshot().status,'completed');
+ assert.equal(events.filter(e=>e.type==='completed').length,1);assert.equal(watch.start(),false);
+ [...tasks.values()].forEach(task=>task.fn());
+ assert.equal(watch.getSnapshot().notifications.length,2);assert.equal(events.filter(e=>e.type==='completed').length,1);
+});
+
+test('stop after first arrival blocks second; resume waits remaining active time and cannot replay first',()=>{
+ const {watch,events,tasks,advance}=sequentialSetup();
+ watch.start();advance(12000);assert.equal(watch.getSnapshot().notifications.length,1);
+ const stale=[...tasks.values()].at(-1).fn;
+ watch.stop();advance(60000);stale();assert.equal(watch.getSnapshot().notifications.length,1);
+ watch.start();assert.equal([...tasks.values()].at(-1).ms,3000);
+ advance(2999);assert.equal(watch.getSnapshot().notifications.length,1);
+ advance(1);assert.equal(watch.getSnapshot().notifications.length,2);
+ assert.equal(events.filter(e=>e.type==='match_found').length,2);
+});
+
+test('stop before first arrival preserves remaining delay, independent of wall time paused',()=>{
+ const {watch,tasks,advance}=sequentialSetup();watch.start();advance(4000);watch.stop();advance(50000);
+ watch.start();assert.equal([...tasks.values()].at(-1).ms,6000);
+ advance(6000);assert.equal(watch.getSnapshot().notifications.length,1);
+ advance(5000);assert.equal(watch.getSnapshot().notifications.length,2);
+});
+
+test('out-of-order input is scheduled by offset; later duplicate IDs and nonmatches still complete without extra notification',()=>{
+ const first={...scenario,arrival_after_ms:10000};
+ const duplicate={...scenario,arrival_after_ms:15000};
+ const nonmatch={...scenario,id:'999000000003',item_id:'999000000003',url:'https://www.ebay.com/itm/999000000003',price_cents:rule.max_price_cents+1,arrival_after_ms:20000};
+ const {watch,events,advance}=sequentialSetup({incomingListings:[nonmatch,duplicate,first]});
+ watch.start();advance(10000);assert.equal(watch.getSnapshot().notifications.length,1);
+ advance(5000);assert.equal(watch.getSnapshot().notifications.length,1);assert.equal(watch.getSnapshot().status,'watching');
+ advance(5000);assert.equal(watch.getSnapshot().status,'completed');
+ assert.equal(events.filter(e=>e.type==='listing_arrived').length,2);
+ assert.equal(events.filter(e=>e.type==='match_found').length,1);
+});
+
+test('timing and incoming records are cloned; invalid absolute offsets reject',()=>{
+ const a={...scenario,arrival_after_ms:10000};
+ const b={...scenario,id:'999000000004',item_id:'999000000004',url:'https://www.ebay.com/itm/999000000004',arrival_after_ms:15000};
+ const {watch,advance}=sequentialSetup({incomingListings:[a,b]});
+ a.arrival_after_ms=1;b.arrival_after_ms=1;b.price_cents=1;
+ watch.start();advance(10000);assert.equal(watch.getSnapshot().notifications.length,1);
+ advance(5000);assert.equal(watch.getSnapshot().notifications.length,2);
+ assert.ok(watch.getSnapshot().results.every(x=>x.price_cents===scenario.price_cents));
+ for(const arrival_after_ms of [0,-1,1.5,60001,NaN,'10000',null]){
+  assert.throws(()=>setup({incomingListings:[{...scenario,arrival_after_ms}]}),{code:'INVALID_DEMO_WATCH_INPUT'});
+ }
+});

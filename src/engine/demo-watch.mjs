@@ -23,6 +23,7 @@ function validateListing(listing, staged = false) {
   if (listing.model_year != null && (!Number.isInteger(listing.model_year) || listing.model_year < 1000 || listing.model_year > 9999)) invalid();
   if (listing.item_location_country_code != null && !['US','JP','KR'].includes(listing.item_location_country_code)) invalid();
   attributes(listing.attributes);
+  if (listing.arrival_after_ms !== undefined && (!Number.isSafeInteger(listing.arrival_after_ms) || listing.arrival_after_ms < 1 || listing.arrival_after_ms > 60000)) invalid();
   if (staged) {
     if (listing.synthetic !== false || listing.data_mode !== 'historical_observations' || listing.arrival_mode !== 'staged' || listing.live_verified !== false || listing.id !== listing.item_id || !/^\d+$/.test(listing.id)) invalid();
     let url; try { url = new URL(listing.url); } catch { invalid(); }
@@ -42,34 +43,47 @@ export function matchesWatchRule(listing, effectiveRule) {
   return matches(listing, effectiveRule);
 }
 
-/** Caller supplies FINAL validated AI + manual filters. Unsupported keys reject, never silently disappear.
- * getSnapshot() returns immediate matches. start() schedules ONE demo arrival batch after 10 seconds.
- * stop() cancels it. A completed instance cannot replay; create a new instance to explicitly reset.
- * scheduler injection is for deterministic testing; browser or Node timers work by default.
+/** Caller supplies FINAL validated AI + manual filters. Unsupported keys reject.
+ * arrival_after_ms is an absolute offset in ACTIVE watch time, not wall-clock time.
+ * Missing offsets use delayMs (legacy simultaneous batch). Stop pauses elapsed time;
+ * start resumes only pending arrivals. Completed watches cannot replay.
+ * scheduler.now() is optional for deterministic tests; defaults to Date.now().
  */
 export function createDemoWatch({effectiveRule, initialListings = [], incomingListings, onEvent = () => {},
   delayMs = 10000, scheduler = {setTimeout: (fn, ms) => setTimeout(fn, ms), clearTimeout: id => clearTimeout(id)}}) {
   validateRule(effectiveRule);
-  if (!Array.isArray(initialListings) || !Array.isArray(incomingListings) || !incomingListings.length || typeof onEvent !== 'function' || !Number.isSafeInteger(delayMs) || delayMs < 1 || delayMs > 60000 || typeof scheduler?.setTimeout !== 'function' || typeof scheduler?.clearTimeout !== 'function') invalid();
+  if (!Array.isArray(initialListings) || !Array.isArray(incomingListings) || !incomingListings.length || typeof onEvent !== 'function' || !Number.isSafeInteger(delayMs) || delayMs < 1 || delayMs > 60000 || typeof scheduler?.setTimeout !== 'function' || typeof scheduler?.clearTimeout !== 'function' || scheduler.now !== undefined && typeof scheduler.now !== 'function') invalid();
   initialListings.forEach(item => validateListing(item));
   incomingListings.forEach(item => validateListing(item, true));
   const rule = structuredClone(effectiveRule), initial = structuredClone(initialListings), incoming = structuredClone(incomingListings);
   if (new Set(initial.map(x => x.id)).size !== initial.length) invalid();
-  let status = 'idle', timer = null, generation = 0;
+  const queue = incoming.map((listing,index) => ({listing,index,at:listing.arrival_after_ms ?? delayMs}))
+    .sort((a,b) => a.at-b.at || a.index-b.index);
+  const now = () => scheduler.now ? scheduler.now() : Date.now();
+  const byPrice = (a,b) => a.price_cents-b.price_cents || (a.id<b.id?-1:a.id>b.id?1:0);
+  let status = 'idle', timer = null, generation = 0, timerTicket = 0, nextIndex = 0;
+  let activeElapsed = 0, startedAt = null;
   const seen = new Set(initial.map(x => x.id));
-  const results = initial.filter(item => matches(item, rule));
+  const results = initial.filter(item => matches(item, rule)).sort(byPrice);
   const notifications = [];
+  const elapsed = () => activeElapsed + (status === 'watching' ? Math.max(0,now()-startedAt) : 0);
   const emit = event => onEvent(structuredClone({data_mode:'simulation', live_verified:false, ...event}));
-  const getSnapshot = () => structuredClone({status, data_mode:'simulation', live_verified:false, effective_rule:rule, results, notifications});
-  function start() {
-    if (status === 'watching' || status === 'completed') return false;
-    status = 'watching'; const run = ++generation;
+  const getSnapshot = () => structuredClone({status, data_mode:'simulation', live_verified:false, effective_rule:rule,
+    results, notifications, pending_count:queue.length-nextIndex});
+
+  function scheduleNext(run) {
+    const dueAt = queue[nextIndex].at;
+    const wait = Math.max(0,dueAt-elapsed());
+    const ticket = ++timerTicket;
     timer = scheduler.setTimeout(() => {
-      if (status !== 'watching' || generation !== run) return;
-      timer = null;
-      // Update state before delivering events; callback failures cannot replay already-consumed arrivals.
+      if (status !== 'watching' || generation !== run || timerTicket !== ticket) return;
+      timer = null;timerTicket++;
+      // At least this scheduled deadline has elapsed. This also supports manual timer
+      // callbacks in legacy deterministic tests whose scheduler has no fake clock.
+      activeElapsed = Math.max(elapsed(),dueAt);startedAt = now();
       const events = [];
-      for (const listing of incoming) {
+      while (nextIndex < queue.length && queue[nextIndex].at <= activeElapsed) {
+        const {listing} = queue[nextIndex++];
         if (seen.has(listing.id)) continue;
         seen.add(listing.id);
         const matched = matches(listing, rule);
@@ -83,17 +97,30 @@ export function createDemoWatch({effectiveRule, initialListings = [], incomingLi
           events.push({type:'match_found', listing, notification});
         }
       }
-      status = 'completed';
-      events.push({type:'completed', new_match_count:notifications.length});
+      results.sort(byPrice);
+      if (nextIndex === queue.length) {
+        status = 'completed';startedAt = null;
+        events.push({type:'completed', new_match_count:notifications.length});
+      } else {
+        // Schedule before user callbacks, so stop() from a callback cancels the next arrival.
+        scheduleNext(run);
+      }
       for (const event of events) emit(event);
-    }, delayMs);
-    emit({type:'watching', delay_ms:delayMs});
+    }, wait);
+    return wait;
+  }
+  function start() {
+    if (status === 'watching' || status === 'completed') return false;
+    startedAt = now();status = 'watching';const run = ++generation;
+    const wait = scheduleNext(run);
+    emit({type:'watching', delay_ms:wait, pending_count:queue.length-nextIndex});
     return true;
   }
   function stop() {
     if (status !== 'watching') return false;
-    scheduler.clearTimeout(timer); timer = null; generation++; status = 'stopped';
-    emit({type:'stopped'}); return true;
+    activeElapsed = elapsed();
+    scheduler.clearTimeout(timer);timer = null;generation++;timerTicket++;status = 'stopped';startedAt = null;
+    emit({type:'stopped'});return true;
   }
   return Object.freeze({start, stop, getSnapshot});
 }

@@ -47,6 +47,7 @@ export function createWatchUi(panel, {onNewMatch = () => {}} = {}) {
     if(rendered.has(listing.id))return false;
     rendered.add(listing.id);
     const article=document.createElement('article');article.className='listing arrived-listing';
+    article.dataset.priceCents=String(listing.price_cents);article.dataset.itemId=listing.id;
     const info=document.createElement('div');
     const label=document.createElement('p');label.className='arrival-label';label.textContent='eBay listing';
     const title=document.createElement('h3');title.textContent=listing.title;
@@ -56,7 +57,8 @@ export function createWatchUi(panel, {onNewMatch = () => {}} = {}) {
     const basis=document.createElement('p');basis.className='arrival-note';basis.textContent='Item price only. Shipping, taxes, and duties are excluded.';
     info.append(label,title,location,price,basis);article.append(info);
     const link=originalLink(listing);if(link)article.append(link);
-    arrivals.append(article);
+    const next=[...arrivals.children].find(row=>Number(row.dataset.priceCents)>listing.price_cents || Number(row.dataset.priceCents)===listing.price_cents && row.dataset.itemId.localeCompare(listing.id)>0);
+    arrivals.insertBefore(article,next??null);
     return true;
   }
   function begin() {

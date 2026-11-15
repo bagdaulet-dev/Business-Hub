@@ -16,15 +16,15 @@ Default URL:http://127.0.0.1:4173. PORT can override it. Server variables are li
 
 One Search uses AI. Filters override extracted maximum USD price, model year and item-location countries. Empty/default countries follow the query; explicit All countries clears the location restriction.
 
-Each example starts below the cheapest initial offer:
+The examples serve different presentation goals:Charizard shows sequential arrivals, Sony shows ordinary price comparisons, Canon shows country filters and missing comparison evidence:
 
 | Query budget | Delayed real listing | Next initial price |
 |---|---:|---:|
-| Charizard under$380 | $360 | $400 |
-| Sony under$190 | $184 | $199 |
-| Canon under$660 | $649.95 | $679.99 |
+| Charizard under$380 | $375 at10s, then$360 at15s | $400 |
+| Sony under$200 | $184 at10s | $199 (two separate offers) |
+| Canon under$800 | $649.95 at10s | $679.99 |
 
-Search initially excludes the delayed item and excludes it from comparison peers. Watch this search reveals that unchanged real historical record after10seconds, if it matches the final conditions. View on eBay uses its original source URL. Stop watching pauses; Resume restarts the delay. After completion no Replay button is offered. Editing the search disposes the old watch.
+Search initially excludes the delayed item and excludes it from comparison peers. Watch this search reveals that unchanged real historical record after10seconds, if it matches the final conditions. View on eBay uses its original source URL. Stop watching pauses the schedule; Resume continues the remaining active-time delay. After completion no Replay button is offered. Editing the search disposes the old watch.
 
 The footer explains the data and timing: saved eBay listings, unverified current prices/availability, staged new-listing arrival. No invented products or prices are used. This is page-local presentation logic, not a live monitor or paid subscription. A closed/reloaded page loses the watch. No extra Kimi call occurs during the timer.
 
@@ -44,4 +44,6 @@ node build-static.mjs
 node tests/integration/browser-check.mjs
 ```
 
-Browser check requires Playwright and Chromium. It uses injected completions with the real local HTTP/catalog path, verifies filters and mobile layout, then waits for a real ten-second staged arrival and checks its original eBay link. No paid model calls are made by the test suite.
+Browser check requires Playwright and Chromium. It uses injected completions with the real local HTTP/catalog path, verifies filters and mobile layout, then checks staged real arrivals at10s and15s, their eBay links and ascending price order. No paid model calls are made by the test suite.
+
+Sony’s two$199 offers are separate listing IDs156530320468 and187722965921, both new blackWH-1000XM5 in the same comparison group. Their titles/locations differ; Bluetooth and New In Box wording does not define another model. Canon records claim body-only configuration; unresolved regional warranty and packaging equivalence—not necessarily different lens kits—prevents a shared median.
