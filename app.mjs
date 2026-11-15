@@ -235,7 +235,10 @@ const errors = {
   QUERY_NEEDS_CARD: 'Name a supported product or card, or try one of the examples.',
   PROVIDER_NOT_CONFIGURED: 'AI search is unavailable on this server.',
   TOO_MANY_REQUESTS: 'The request limit was reached. Try again later.',
-  PROVIDER_TIMEOUT: 'AI search timed out. Try again.'
+  PROVIDER_TIMEOUT: 'AI search timed out. Try again.',
+  PROVIDER_UNAVAILABLE: 'The AI provider could not complete this search. Please retry.',
+  INVALID_MODEL_OUTPUT: 'The AI response could not be verified. Please retry.',
+  INTERNAL_ERROR: 'The search service encountered an error. Please retry.'
 };
 
 function showError(message) {
@@ -251,7 +254,7 @@ function showError(message) {
 async function search(text, overrides) {
   const controller = new AbortController();
   activeSearch = controller;
-  const timer = setTimeout(() => controller.abort(), 25000);
+  const timer = setTimeout(() => controller.abort(), 40000);
   submit.disabled = true;
   resultSection.hidden = false;
   resultSection.setAttribute('aria-busy', 'true');

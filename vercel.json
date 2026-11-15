@@ -5,8 +5,12 @@
   "outputDirectory": "public",
   "functions": {
     "api/search.js": {
-      "maxDuration": 30,
-      "includeFiles": "data/demo/charizard-psa9-source-observations.json"
+      "maxDuration": 60,
+      "includeFiles": "data/demo/**"
+    },
+    "api/recommend.js": {
+      "maxDuration": 60,
+      "includeFiles": "data/demo/**"
     }
   }
 }

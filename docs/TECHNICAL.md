@@ -60,3 +60,7 @@ Click Help me choose above the results to ask Kimi to compare the currently visi
 POST /api/recommend accepts only {effectiveRule,listingIds}. It validates the rule and IDs, reloads trusted data, and rejects price/URL/configuration injection. The server uses a 35-second provider timeout, two simultaneous requests and six attempts per minute per process. No extra call happens automatically on search or arrival. A new visible listing aborts any pending recommendation and marks the previous result stale; Update recommendation requests a fresh comparison. Clearing the search discards it.
 
 Server credentials remain in local environment variables. The recommendation uses the configured Kimi model with a 4000-token generation budget (including model reasoning). No billing, purchasing or risk scoring is implemented. Local recommendation UI validation: `node tests/integration/recommendation-browser-check.mjs` (Playwright required; injected completion, no provider calls). Hosting remains deferred; deployment configuration has not been changed for this feature.
+
+## Provider and hosting limits
+
+Search and recommendations allow 4000 generation tokens (including Kimi reasoning), a 35-second provider timeout, and a 40-second browser timeout. Both Vercel functions have a 60-second maximum and include the full demo data directory. Provider or invalid-output errors remain explicit failures, with no fabricated fallback or automatic paid retries.

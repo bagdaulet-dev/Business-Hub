@@ -82,7 +82,7 @@ function validOverrides(value) {
 }
 
 /** Trusted fixture only. Request data never supplies listings, prices or provider config. */
-export function createSearchHandler({complete,requestTimeoutMs=5000,providerTimeoutMs=15000,
+export function createSearchHandler({complete,requestTimeoutMs=5000,providerTimeoutMs=35000,
   maxConcurrent=2,maxAttemptsPerMinute=12}={}) {
   if(!Number.isInteger(maxConcurrent)||maxConcurrent<1||maxConcurrent>2||
     !Number.isInteger(maxAttemptsPerMinute)||maxAttemptsPerMinute<1||maxAttemptsPerMinute>12||

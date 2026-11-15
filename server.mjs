@@ -8,7 +8,7 @@ import {createTelecomCompletion} from './src/providers/telecom.mjs';
 import {RuleParseError} from './src/providers/rule-parser.mjs';
 export {createAppServer};
 
-async function configuredCompletion(input,maxTokens=700) {
+async function configuredCompletion(input,maxTokens=4000) {
   const apiKey=process.env.LLM_API_KEY;
   const model=process.env.LLM_MODEL?.trim()||'kimi-k3';
   if(!apiKey?.trim()){
