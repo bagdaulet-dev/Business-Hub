@@ -138,7 +138,7 @@ export function createWatchUi(panel, {onNewMatch = () => {}, renderPriceDetails 
               start.hidden=true;stop.hidden=false;status.textContent='Watching this search.';
             }else if(event.type==='match_found'){
               if(renderArrival(event.listing)){
-                onNewMatch();
+                onNewMatch(event.listing);
                 toastQueue.enqueue({id:event.listing.id,name:conciseName(event.listing),price_cents:event.listing.price_cents});
               }
             }else if(event.type==='completed'){

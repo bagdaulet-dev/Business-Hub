@@ -1,0 +1,44 @@
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {createAppServer} from '../../src/server/http.mjs';
+const moduleName=process.env.PLAYWRIGHT_MODULE||'playwright';
+const {chromium}=await import(moduleName.startsWith('/')?pathToFileURL(moduleName).href:moduleName);
+const browser=await chromium.launch({headless:true,executablePath:process.env.BROWSER_EXECUTABLE});
+const rule={product_id:'sony-wh1000xm5',card_name:null,card_number:null,set_name:null,language:null,grader:null,finish:null,grade:null,condition:'New',color:'Black',configuration:'headphones',max_price_cents:20000,min_discount_pct:null,model_year:null,item_location_countries:[]};
+let calls=0,release;
+const tie={recommended_item_id:null,reason:'Both offers have the same recorded price and matching advertised attributes.',alternative_item_id:null,alternative_reason:null,checks:['Compare shipping costs and return terms before deciding.']};
+let response=async()=>JSON.stringify(tie);
+const server=createAppServer({complete:async()=>JSON.stringify(rule),recommendationComplete:async()=>{calls++;return response();}});
+try{
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const page=await browser.newPage({viewport:{width:1280,height:900}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(`http://127.0.0.1:${server.address().port}`);
+ await page.getByRole('button',{name:/Sony WH-1000XM5/}).click();
+ await page.getByRole('button',{name:'Search',exact:true}).click();
+ await page.getByText('2 matches',{exact:true}).waitFor();
+ assert.equal(calls,0);
+ await page.locator('#recommend-button').click();
+ await page.locator('#recommendation-panel[data-state="ready"]').waitFor();
+ assert.equal(calls,1);assert.match(await page.locator('#recommendation-content').textContent(),/same recorded price/);
+ // A pending answer for the old visible set cannot overwrite a new set after arrival.
+ let started;const pending=new Promise(r=>{started=r;});
+ response=async()=>{started();return new Promise(r=>{release=()=>r(JSON.stringify(tie));});};
+ await page.clock.install();
+ await page.getByRole('button',{name:'Watch this search',exact:true}).click();
+ await page.locator('#recommend-button').click();await pending;
+ await page.clock.runFor(10000);
+ assert.equal(calls,2);assert.equal(await page.locator('#status').textContent(),'3 matches');
+ assert.equal(await page.locator('#recommendation-panel').getAttribute('data-state'),'stale');
+ release();
+ response=async()=>JSON.stringify({recommended_item_id:'377184719616',reason:'The lowest recorded item price among these matching offers.',alternative_item_id:'156530320468',alternative_reason:'Same advertised model and condition, at a higher item price.',checks:['Shipping cost is unknown.','Confirm current availability and returns.']});
+ await page.locator('#recommend-button').click();
+ await page.locator('#recommendation-panel[data-state="ready"]').waitFor();
+ assert.equal(calls,3);assert.match(await page.locator('#recommendation-content').textContent(),/lowest recorded/);
+ assert.ok((await page.locator('#recommendation-content a').all()).length>=1);
+ assert.ok((await page.locator('#recommendation-content a').first().getAttribute('href')).includes('377184719616'));
+ await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth===innerWidth));
+ if(process.env.RECOMMEND_SCREENSHOT)await page.locator('#recommendation-panel').screenshot({path:process.env.RECOMMEND_SCREENSHOT});
+ await page.getByRole('button',{name:'Clear search',exact:true}).click();assert.ok(await page.locator('#recommendation-panel').isHidden());
+ assert.deepEqual(errors,[]);
+ console.log('Recommendation UI passed: explicit invocation, tie, stale in-flight response, updated visible-set choice, links, mobile and clear.');
+}finally{release?.();await browser.close();if(server.listening){server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}}

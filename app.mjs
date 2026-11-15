@@ -1,4 +1,5 @@
 import {createWatchUi} from './watch-ui.mjs';
+import {createRecommendationUi} from './recommendation-ui.mjs';
 
 const form = document.querySelector('#hunt');
 const query = form.elements.query;
@@ -18,13 +19,15 @@ const findings = document.querySelector('#findings');
 const submit = document.querySelector('#search');
 let initialResultCount = 0;
 let arrivalCount = 0;
+const recommendationUi = createRecommendationUi(document.querySelector('#recommendation-panel'));
 const watchUi = createWatchUi(document.querySelector('#watch-panel'), {
   renderPriceDetails: priceDetails,
-  onNewMatch() {
+  onNewMatch(listing) {
     arrivalCount++;
     const count = initialResultCount + arrivalCount;
     status.textContent = `${count} ${count === 1 ? 'match' : 'matches'}`;
     findings.querySelector('.empty')?.remove();
+    recommendationUi.addListing(listing);
   }
 });
 
@@ -87,6 +90,7 @@ function clearResults() {
   initialResultCount = 0;
   arrivalCount = 0;
   watchUi.clear();
+  recommendationUi.clear();
   const previous = activeSearch;
   activeSearch = undefined;
   previous?.abort();
@@ -271,6 +275,7 @@ async function search(text, overrides) {
     }
     if (!Array.isArray(payload.results) || !payload.rule) throw new Error('Invalid search response');
     renderResults(payload);
+    recommendationUi.setSearch(payload);
     watchUi.offer(payload);
   } catch {
     if (activeSearch === controller) {

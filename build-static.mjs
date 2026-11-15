@@ -7,7 +7,7 @@ const root=await realpath(fileURLToPath(new URL('./',import.meta.url)));
 const output=join(root,'public');
 const assets=[
   'index.html','app.mjs','style.css','assets/collectwatch-products.webp',
-  'src/engine/demo-watch.mjs','data/demo/watch-scenarios.json','watch-ui.mjs',
+  'src/engine/demo-watch.mjs','data/demo/watch-scenarios.json','watch-ui.mjs','recommendation-ui.mjs',
 ];
 
 // Validate sources before replacing any generated output; disallow symlinked input paths.

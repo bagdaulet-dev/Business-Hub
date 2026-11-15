@@ -149,6 +149,21 @@ details[open] .bar { animation: fill .6s cubic-bezier(.2,.9,.2,1) both; }
 .arrived-listing { border-color: var(--accent); }
 .arrived-listing .arrival-label { color: var(--accent); }
 .arrived-listing .arrival-note { margin-top: 10px; max-width: 700px; line-height: 1.55; }
+.recommendation-panel { margin-top: 18px; border: 1px solid var(--line); border-radius: 16px; background: #21192e; padding: 17px; }
+.recommendation-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.recommendation-heading h3 { margin: 0; font-size: 1rem; }
+.recommendation-heading button:disabled { opacity: .6; cursor: wait; }
+.recommend-status { margin: 10px 0 0; font-size: .84rem; color: var(--muted); line-height: 1.5; }
+.recommendation-panel[data-state="stale"] .recommend-status { color: var(--accent); }
+#recommendation-content:not(:empty) { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,260px),1fr)); gap: 12px; margin-top: 14px; }
+.recommendation-choice, .recommendation-checks { border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+.recommendation-choice h4, .recommendation-checks h4 { margin: 0 0 8px; color: var(--accent); font-size: .88rem; }
+.recommendation-title { margin: 0 0 8px; font-weight: 700; line-height: 1.45; overflow-wrap: anywhere; }
+.recommendation-price { display: block; font-size: 1.5rem; margin-bottom: 9px; }
+.recommendation-facts { color: var(--muted); font-size: .8rem; line-height: 1.6; overflow-wrap: anywhere; }
+.recommendation-reason, .recommendation-checks { font-size: .88rem; line-height: 1.6; overflow-wrap: anywhere; }
+.recommendation-checks ul { padding-left: 18px; margin: 0; }
+.recommendation-checks li + li { margin-top: 7px; }
 footer { margin: 35px 0 0; padding: 16px 0 35px; border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem; line-height: 1.55; }
 footer p { max-width: 760px; margin: 5px 0 0; }
 @keyframes drift { to { transform: translate(9%,-5%) rotate(11deg) scale(1.13); } }

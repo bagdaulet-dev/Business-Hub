@@ -1,3 +1,4 @@
+import {createRecommendationHandler} from './recommendation-handler.mjs';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {createSearchHandler,sendJson} from './search-handler.mjs';
@@ -6,6 +7,7 @@ const root=new URL('../../',import.meta.url);
 const paths=new Map([
   ['/', ['index.html','text/html; charset=utf-8']],
   ['/index.html',['index.html','text/html; charset=utf-8']],
+  ['/recommendation-ui.mjs',['recommendation-ui.mjs','text/javascript; charset=utf-8']],
   ['/app.mjs',['app.mjs','text/javascript; charset=utf-8']],
   ['/src/engine/demo-watch.mjs',['src/engine/demo-watch.mjs','text/javascript; charset=utf-8']],
   ['/data/demo/watch-scenarios.json',['data/demo/watch-scenarios.json','application/json; charset=utf-8']],
@@ -16,6 +18,7 @@ const paths=new Map([
 
 export function createAppServer(options={}) {
   const search=options.searchHandler??createSearchHandler(options);
+  const recommend=options.recommendationHandler??createRecommendationHandler({complete:options.recommendationComplete??options.complete});
   const server=createServer(async(req,res)=>{
     let path;
     try{
@@ -24,6 +27,7 @@ export function createAppServer(options={}) {
       path=decodeURIComponent(raw);
       if(path.includes('\\')||path.includes('\0')||path.split('/').some(part=>part==='.'||part==='..'))throw new Error();
     }catch{req.resume();sendJson(res,404,{error:{code:'NOT_FOUND',message:'Resource not found.'}});return;}
+    if(path==='/api/recommend'){await recommend(req,res);return;}
     if(path==='/api/search'){await search(req,res);return;}
     const file=paths.get(path);
     if(!file){req.resume();sendJson(res,404,{error:{code:'NOT_FOUND',message:'Resource not found.'}});return;}

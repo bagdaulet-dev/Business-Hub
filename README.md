@@ -52,3 +52,11 @@ Sony’s two$199 offers are separate listing IDs156530320468 and187722965921, bo
 New matches also appear in a single top toast: a short product identity and price. Notifications use FIFO, with250ms entrance,5seconds reading time,250ms exit and200ms gap; a later arrival never replaces the current toast. Cards update immediately. Clear search cancels active and queued toasts. Reduced-motion removes entrance/exit animation while retaining reading time and separation. These are in-page notifications, not operating-system push alerts.
 
 Newly arrived listings have the same Price comparison details as initial results. They use the fixed initial comparable pool, excluding themselves and all staged arrivals; the budget does not truncate peers. Charizard$375 and$360 compare with the$460median (18.48% and21.74% below). This keeps the baseline stable between arrivals and avoids exposing future listings through comparison links. Canon continues to show no median.
+
+## Help me choose
+
+Click Help me choose above the results to ask Kimi to compare the currently visible listings against the effective search conditions. The response identifies a best fit or no clear winner, explains an alternative and lists missing information to check. Prices and benchmark arithmetic come from server-owned catalog data, not the model. Recommendation links must refer to one of the compared listings.
+
+POST /api/recommend accepts only {effectiveRule,listingIds}. It validates the rule and IDs, reloads trusted data, and rejects price/URL/configuration injection. The server uses a20-second provider timeout, two simultaneous requests and six attempts per minute per process. No extra call happens automatically on search or arrival. A new visible listing aborts any pending recommendation and marks the previous result stale; Update recommendation requests a fresh comparison. Clearing the search discards it.
+
+Server credentials remain in local environment variables. The recommendation uses the configured Kimi model with a 4000-token generation budget (including model reasoning). No billing, purchasing or risk scoring is implemented. Local recommendation UI validation: `node tests/integration/recommendation-browser-check.mjs` (Playwright required; injected completion, no provider calls). Hosting remains deferred; deployment configuration has not been changed for this feature.
