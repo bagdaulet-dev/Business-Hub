@@ -6,12 +6,6 @@
 node_modules
 work
 tests
-docs
-AGENTS.md
 README.md
 public
-data/demo/HANDOFF.txt
-data/demo/VERIFICATION.txt
-data/demo/expected-price-demo.json
-src/engine/INTEGRATION.txt
 src/engine/demo.mjs

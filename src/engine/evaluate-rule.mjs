@@ -1,4 +1,3 @@
-/** Internal rule-to-pricing bridge. Adapt to the shared contract when it is published. */
 import {validateRule} from '../providers/rule-parser.mjs';
 import {evaluatePricing, IDENTITY_FIELDS, validateObservations} from './pricing.mjs';
 const norm=v=>v==null?'':String(v).trim().replace(/\s+/g,' ').toLowerCase();

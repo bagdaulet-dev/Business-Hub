@@ -96,7 +96,7 @@ test('strict static allowlist exposes app assets only; denies private paths and 
     for(const path of ['/','/index.html','/app.mjs','/style.css','/assets/collectwatch-products.webp','/watch-ui.mjs','/src/engine/demo-watch.mjs','/data/demo/watch-scenarios.json']){
       const response=await fetch(base+path);assert.equal(response.status,200,path);assert.equal(response.headers.get('x-content-type-options'),'nosniff');
     }
-    for(const path of ['/.env','/src/providers/telecom.mjs','/work/token','/.git/config','/server.mjs','/data/demo/HANDOFF.txt','/%2e%2e%2f.env','/%5c.env']){
+    for(const path of ['/.env','/src/providers/telecom.mjs','/work/token','/.git/config','/server.mjs','/data/demo/canon-eos-r50-source-observations.json','/%2e%2e%2f.env','/%5c.env']){
       assert.equal((await fetch(base+path)).status,404,path);
     }
     const head=await fetch(base+'/style.css',{method:'HEAD'});assert.equal(head.status,200);assert.equal(await head.text(),'');

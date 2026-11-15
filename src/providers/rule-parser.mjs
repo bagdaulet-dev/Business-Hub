@@ -1,4 +1,3 @@
-/** Internal extraction utility. Shared app contract remains owned by bagdaulet-dev. */
 export class RuleParseError extends Error {
   constructor(code) { super(code); this.name = 'RuleParseError'; this.code = code; }
 }
