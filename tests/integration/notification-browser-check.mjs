@@ -1,0 +1,38 @@
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {createAppServer} from '../../src/server/http.mjs';
+const moduleName=process.env.PLAYWRIGHT_MODULE||'playwright';
+const {chromium}=await import(moduleName.startsWith('/')?pathToFileURL(moduleName).href:moduleName);
+const browser=await chromium.launch({headless:true,executablePath:process.env.BROWSER_EXECUTABLE});
+const rule={product_id:'charizard-ex-199-165-psa9',card_name:'Charizard ex',card_number:'199/165',set_name:null,language:'English',grader:'PSA',finish:null,grade:9,condition:null,color:null,configuration:null,max_price_cents:38000,min_discount_pct:null,model_year:null,item_location_countries:[]};
+const server=createAppServer({complete:async()=>JSON.stringify(rule)});
+try{
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const page=await browser.newPage({viewport:{width:1280,height:850}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(`http://127.0.0.1:${server.address().port}`);
+ await page.getByRole('button',{name:/Charizard ex English/}).click();
+ await page.getByRole('button',{name:'Search',exact:true}).click();
+ await page.getByRole('button',{name:'Watch this search',exact:true}).waitFor();
+ await page.clock.install();
+ await page.getByRole('button',{name:'Watch this search',exact:true}).click();
+ await page.clock.runFor(10000);
+ const toast=page.locator('#watch-notification');
+ assert.ok(await toast.isVisible());assert.equal(await toast.locator('.toast-price').textContent(),'$375.00');
+ assert.match(await toast.locator('.toast-name').textContent(),/Charizard ex/);
+ assert.equal(await page.locator('.arrived-listing').count(),1);
+ await page.clock.runFor(5000);
+ assert.equal(await page.locator('.arrived-listing').count(),2);
+ assert.equal(await toast.locator('.toast-price').textContent(),'$375.00','Second listing must not replace first toast');
+ await page.clock.runFor(250);assert.equal(await toast.getAttribute('data-phase'),'exiting');
+ await page.clock.runFor(250);assert.ok(await toast.isHidden());
+ await page.clock.runFor(200);assert.ok(await toast.isVisible());assert.equal(await toast.locator('.toast-price').textContent(),'$360.00');
+ await page.clock.runFor(250);
+ await page.setViewportSize({width:390,height:844});
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth===innerWidth));
+ const rect=await toast.boundingBox();assert.ok(rect.x>=0&&rect.x+rect.width<=390&&rect.y>=0);
+ if(process.env.TOAST_SCREENSHOT)await page.screenshot({path:process.env.TOAST_SCREENSHOT});
+ await page.getByRole('button',{name:'Clear search',exact:true}).click();
+ assert.ok(await toast.isHidden());await page.clock.runFor(20000);assert.ok(await toast.isHidden());
+ assert.deepEqual(errors,[]);
+ console.log('Toast browser checks passed: FIFO, full exit/gap, immediate cards, mobile positioning and cancellation.');
+}finally{await browser.close();if(server.listening){server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}}

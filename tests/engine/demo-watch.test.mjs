@@ -6,7 +6,7 @@ const scenario=JSON.parse(readFileSync(new URL('../../data/demo/watch-scenarios.
 const rule={product_id:scenario.product_id,max_price_cents:scenario.price_cents+1000,model_year:2023,item_location_countries:['US'],attributes:{grade:9,language:'English'}};
 function setup(overrides={}) {
  const timers=[]; const events=[];
- const scheduler={setTimeout(fn,ms){timers.push({fn,ms,cancelled:false});return timers.length-1;},clearTimeout(id){timers[id].cancelled=true;}};
+ const scheduler={now:()=>0,setTimeout(fn,ms){timers.push({fn,ms,cancelled:false});return timers.length-1;},clearTimeout(id){timers[id].cancelled=true;}};
  const watch=createDemoWatch({effectiveRule:rule,incomingListings:[scenario],onEvent:e=>events.push(e),scheduler,...overrides});
  return {watch,timers,events};
 }

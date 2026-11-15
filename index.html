@@ -101,7 +101,6 @@
             <div class="watch-actions"><button id="watch-start" class="secondary" type="button">Watch this search</button><button id="watch-stop" class="secondary" type="button" hidden>Stop watching</button></div>
           </div>
           <p id="watch-status" class="watch-status" role="status"></p>
-          <p id="watch-notification" class="watch-notification" role="status" aria-live="polite" aria-atomic="true" hidden></p>
           <div id="watch-arrivals"></div>
         </section>
         <div id="findings"></div>
@@ -111,5 +110,9 @@
       <p>Saved eBay listings; current prices and availability unverified; new-listing arrival is staged for this presentation.</p>
     </footer>
   </div>
+  <aside id="watch-notification" class="watch-notification" data-phase="idle" role="status" aria-live="polite" aria-atomic="true" hidden>
+    <div class="toast-copy"><strong class="toast-title">New match for your search</strong><p class="toast-name"></p><strong class="toast-price"></strong></div>
+    <button type="button" id="watch-toast-close" class="toast-close" aria-label="Dismiss notification">×</button>
+  </aside>
 </body>
 </html>

@@ -134,7 +134,17 @@ details[open] .bar { animation: fill .6s cubic-bezier(.2,.9,.2,1) both; }
 .watch-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .watch-actions button:disabled { cursor: default; opacity: .6; }
 .watch-status { margin: 12px 0 0; color: var(--muted); font-size: .85rem; line-height: 1.55; }
-.watch-notification { margin: 13px 0 0; padding: 12px 14px; border-left: 3px solid var(--accent); border-radius: 8px; background: #35402d; color: #f0ffd9; font-size: .88rem; line-height: 1.55; overflow-wrap: anywhere; }
+.watch-notification { position: fixed; z-index: 1000; top: max(18px,env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(470px,calc(100vw - 28px)); display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 17px 18px; border: 1px solid #b6d58c; border-left: 4px solid var(--accent); border-radius: 15px; background: #282c25f7; color: #f0ffd9; box-shadow: 0 16px 55px #0008; overflow-wrap: anywhere; }
+.toast-copy { min-width: 0; }
+.toast-title { display: block; font-size: .82rem; font-weight: 600; color: #d3e3c2; }
+.toast-name { margin: 5px 0; line-height: 1.4; font-size: .95rem; font-weight: 720; }
+.toast-price { color: var(--accent); font-size: 1.45rem; letter-spacing: -.04em; }
+.toast-close { flex: 0 0 34px; min-height: 34px; border: 1px solid #c8d3bf40; border-radius: 8px; background: transparent; color: #f0ffd9; font-size: 1.2rem; }
+.toast-close:hover { background: #ffffff16; }
+.watch-notification[data-phase="entering"] { animation: toast-enter .25s ease-out both; }
+.watch-notification[data-phase="exiting"] { animation: toast-exit .25s ease-in both; }
+@keyframes toast-enter { from { opacity: 0; transform: translate(-50%,-18px); } to { opacity: 1; transform: translate(-50%,0); } }
+@keyframes toast-exit { from { opacity: 1; transform: translate(-50%,0); } to { opacity: 0; transform: translate(-50%,-18px); } }
 #watch-arrivals:not(:empty) { margin-top: 13px; }
 .arrived-listing { border-color: var(--accent); }
 .arrived-listing .arrival-label { color: var(--accent); }

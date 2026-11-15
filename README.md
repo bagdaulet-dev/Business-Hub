@@ -39,11 +39,14 @@ Comparison excludes the current listing and needs at least three other eligible 
 ## Verification
 
 ```sh
-node --test tests/engine/*.test.mjs tests/integration/server.test.mjs
+node --test tests/engine/*.test.mjs tests/integration/*.test.mjs
 node build-static.mjs
 node tests/integration/browser-check.mjs
+node tests/integration/notification-browser-check.mjs
 ```
 
 Browser check requires Playwright and Chromium. It uses injected completions with the real local HTTP/catalog path, verifies filters and mobile layout, then checks staged real arrivals at10s and15s, their eBay links and ascending price order. No paid model calls are made by the test suite.
 
 Sony’s two$199 offers are separate listing IDs156530320468 and187722965921, both new blackWH-1000XM5 in the same comparison group. Their titles/locations differ; Bluetooth and New In Box wording does not define another model. Canon records claim body-only configuration; unresolved regional warranty and packaging equivalence—not necessarily different lens kits—prevents a shared median.
+
+New matches also appear in a single top toast: a short product identity and price. Notifications use FIFO, with250ms entrance,5seconds reading time,250ms exit and200ms gap; a later arrival never replaces the current toast. Cards update immediately. Clear search cancels active and queued toasts. Reduced-motion removes entrance/exit animation while retaining reading time and separation. These are in-page notifications, not operating-system push alerts.
