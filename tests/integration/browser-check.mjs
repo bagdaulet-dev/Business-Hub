@@ -139,6 +139,11 @@ try {
   assert.equal(await page.locator('#status').textContent(),'2 matches');
   assert.deepEqual(await page.locator('.arrived-listing .price').allTextContents(),['$360.00','$375.00']);
   assert.equal(await page.locator('#findings .empty').count(),0);
+  const cheapestArrival=page.locator('.arrived-listing').first();
+  assert.match(await cheapestArrival.locator('.comparison').textContent(),/21\.7% below/);
+  await cheapestArrival.getByText('Price comparison',{exact:true}).click();
+  assert.match(await cheapestArrival.locator('details p').first().textContent(),/Median of 5 other comparable listings: \$460/);
+  assert.match(await cheapestArrival.locator('details p').first().textContent(),/\$100.*21\.7%/);
   assert.equal(modelInputs.length,beforeWatch,'Watch must not call Kimi again');
   assert.equal(await page.locator('.arrived-listing .price').first().textContent(),'$360.00');
   assert.equal(await page.locator('.arrived-listing a').first().getAttribute('href'),'https://www.ebay.com/itm/168684845072');

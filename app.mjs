@@ -19,6 +19,7 @@ const submit = document.querySelector('#search');
 let initialResultCount = 0;
 let arrivalCount = 0;
 const watchUi = createWatchUi(document.querySelector('#watch-panel'), {
+  renderPriceDetails: priceDetails,
   onNewMatch() {
     arrivalCount++;
     const count = initialResultCount + arrivalCount;

@@ -134,9 +134,23 @@ export function createSearchHandler({complete,requestTimeoutMs=5000,providerTime
       const observations = await loadCatalog(rule.product_id);
       // Fixed historical listing is withheld from the initial feed, never repriced.
       const {scenarios} = JSON.parse(await readFile(new URL('../../data/demo/watch-scenarios.json', import.meta.url), 'utf8'));
-      const watchArrivals = scenarios.filter(s => s.listing.product_id === rule.product_id).map(s => s.listing);
+      let watchArrivals = scenarios.filter(s => s.listing.product_id === rule.product_id).map(s => s.listing);
       const delayedIds = new Set(watchArrivals.map(item => item.id));
-      const output = searchCatalog(observations.filter(item => !delayedIds.has(item.id)), effectiveRule);
+      const initialCatalog = observations.filter(item => !delayedIds.has(item.id));
+      const output = searchCatalog(initialCatalog, effectiveRule);
+      // Each arrival is compared with the same initial pool. Neither later arrivals nor
+      // the user's budget alter the baseline, and the evaluated item is excluded as a peer.
+      watchArrivals = watchArrivals.map(arrival => {
+        const normalized = observations.find(item => item.id === arrival.id);
+        const finding = normalized && searchCatalog([...initialCatalog, normalized], {
+          ...effectiveRule, max_price_cents:null, min_discount_pct:null
+        }).results.find(result => result.listing.id === arrival.id);
+        return {...arrival, comparison:{
+          peers:finding?.peers??[], benchmark:finding?.benchmark??null,
+          delta:finding?.delta??null, percent:finding?.percent??null,
+          basis:'initial_comparable_listings'
+        }};
+      });
       sendJson(res,200,{rule,effectiveRule,overrideSources,...output,watchArrivals,
         ...(effectiveRule.model_year===null?{}:{modelYear:effectiveRule.model_year}),
         parserMode:'live-llm',dataMode:'historical_observations'});

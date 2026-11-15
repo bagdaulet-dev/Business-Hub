@@ -67,3 +67,22 @@ test('staged arrivals are genuine records withheld from the initial results at e
   }
  }
 });
+
+test('arrival comparison uses initial peers, excludes every staged item and ignores budget',async()=>{
+ const {createSearchHandler}=await import('../../src/server/search-handler.mjs');
+ for(const product_id of ['charizard-ex-199-165-psa9','sony-wh1000xm5','canon-eos-r50']){
+  const handler=createSearchHandler({complete:async()=>JSON.stringify(rule(product_id,{max_price_cents:1}))});
+  const get=async overrides=>{let out;await handler({method:'POST',headers:{'content-type':'application/json'},body:{text:'query',overrides},resume(){}},{setHeader(){},writeHead(s){assert.equal(s,200)},end(s){out=JSON.parse(s)}});return out;};
+  const low=await get({}),high=await get({max_price_cents:1000000});
+  for(const [index,arrival] of low.watchArrivals.entries()){
+   assert.deepEqual(arrival.comparison,high.watchArrivals[index].comparison);
+   assert.ok(arrival.comparison.peers.every(p=>!low.watchArrivals.some(a=>a.id===p.id)));
+  }
+  if(product_id==='charizard-ex-199-165-psa9'){
+   assert.deepEqual(low.watchArrivals.map(a=>a.comparison.benchmark),[46000,46000]);
+   assert.deepEqual(low.watchArrivals.map(a=>a.comparison.percent),[18.48,21.74]);
+   const us=await get({item_location_countries:['US']});assert.ok(us.watchArrivals.every(a=>a.comparison.peers.every(p=>p.item_location_country_code==='US')));
+  } else if(product_id==='sony-wh1000xm5')assert.equal(low.watchArrivals[0].comparison.benchmark,21880);
+  else assert.equal(low.watchArrivals[0].comparison.benchmark,null);
+ }
+});

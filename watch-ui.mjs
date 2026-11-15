@@ -46,7 +46,7 @@ function conciseName(listing) {
 }
 
 /** Page-local staged arrival using server-supplied historical source records. No API/model calls. */
-export function createWatchUi(panel, {onNewMatch = () => {}} = {}) {
+export function createWatchUi(panel, {onNewMatch = () => {}, renderPriceDetails = null} = {}) {
   const start=panel.querySelector('#watch-start');
   const stop=panel.querySelector('#watch-stop');
   const status=panel.querySelector('#watch-status');
@@ -55,6 +55,7 @@ export function createWatchUi(panel, {onNewMatch = () => {}} = {}) {
   const toastPrice=notice.querySelector('.toast-price');
   const arrivals=panel.querySelector('#watch-arrivals');
   const usd=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
+  const percentFormat=new Intl.NumberFormat('en-US',{maximumFractionDigits:1});
   let savedRule=null, incoming=[], instance=null, generation=0;
   const rendered=new Set();
   const toastQueue=createNotificationQueue({
@@ -108,9 +109,19 @@ export function createWatchUi(panel, {onNewMatch = () => {}} = {}) {
     const location=document.createElement('p');location.className='variant';
     location.textContent=[listing.model_year,listing.item_location_text||'Location unknown'].filter(Boolean).join(' · ');
     const price=document.createElement('strong');price.className='price';price.textContent=usd.format(listing.price_cents/100);
+    const comparison=listing.comparison??{};
+    const percent=comparison.benchmark!=null&&Number.isFinite(comparison.percent)?comparison.percent:null;
+    const badge=document.createElement('span');badge.className=percent>0?'comparison favorable':'comparison';
+    badge.textContent=percent==null?'Not enough comparable listings':percent===0?'At the comparison median'
+      :`${percentFormat.format(Math.abs(percent))}% ${percent>0?'below':'above'} the comparison median`;
     const basis=document.createElement('p');basis.className='arrival-note';basis.textContent='Item price only. Shipping, taxes, and duties are excluded.';
-    info.append(label,title,location,price,basis);article.append(info);
+    info.append(label,title,location,price,badge,basis);article.append(info);
     const link=originalLink(listing);if(link)article.append(link);
+    if(typeof renderPriceDetails==='function'){
+      article.append(renderPriceDetails({...comparison,listing,
+        peers:Array.isArray(comparison.peers)?comparison.peers:[],benchmark:comparison.benchmark??null,
+        delta:comparison.delta??null,percent},savedRule.item_location_countries));
+    }
     const next=[...arrivals.children].find(row=>Number(row.dataset.priceCents)>listing.price_cents || Number(row.dataset.priceCents)===listing.price_cents && row.dataset.itemId.localeCompare(listing.id)>0);
     arrivals.insertBefore(article,next??null);
     return true;
