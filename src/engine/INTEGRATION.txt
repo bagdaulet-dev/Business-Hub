@@ -1,3 +1,5 @@
+Historical handoff — retained for reference only. Superseded by docs/TECHNICAL.md and current code; implementation status below is not current.
+
 CollectWatch — актуальная передача линии aibarC
 
 СТАТУС

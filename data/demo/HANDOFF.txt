@@ -1,3 +1,5 @@
+Historical handoff — retained for reference only. Superseded by docs/TECHNICAL.md and current code; implementation status below is not current.
+
 CollectWatch: observations for a curated demo, retrieved 2026-11-15
 
 PRODUCT DIRECTION FOR COORDINATOR
