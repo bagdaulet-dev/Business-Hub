@@ -3,79 +3,105 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#110f21">
+  <meta name="theme-color" content="#100e1c">
   <link rel="icon" href="data:,">
-  <title>CollectWatch | Search and compare products</title>
-  <meta name="collectwatch-explain-endpoint" content="">
+  <title>CollectWatch | Find a better deal</title>
   <link rel="stylesheet" href="./style.css">
   <script type="module" src="./app.mjs"></script>
 </head>
 <body>
-  <div class="ambient" aria-hidden="true"></div>
+  <div class="ambient" aria-hidden="true"><i></i><i></i><i class="cursor-light"></i></div>
   <div class="shell">
     <header class="top">
       <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"></span>CollectWatch</a>
-      <a class="snapshot" href="#data"><span></span> About the demo</a>
+      <a class="snapshot" href="#data">About the demo <span aria-hidden="true">↘</span></a>
     </header>
     <main>
       <section class="hero" aria-labelledby="title">
         <div class="intro">
-          <h1 id="title">Find your<br>next deal<span>.</span></h1>
-          <p>Find the model you want and compare prices before you buy.</p>
+          <h1 id="title">Find a better<br><em>deal.</em></h1>
+          <p>Describe what you want. CollectWatch compares saved listings so you can see how each offer stacks up.</p>
         </div>
         <div class="display" aria-hidden="true">
-          <div class="halo"></div>
-          <div class="shelf">
-            <div class="showcase showcase-a"><div class="headphones"></div><span>Headphones</span></div>
-            <div class="showcase showcase-b"><div class="camera"></div><span>Cameras</span></div>
-            <div class="showcase showcase-c"><div class="watch"></div><span>Watches</span></div>
+          <div class="stage-glow"></div>
+          <div class="orbit orbit-wide"></div>
+          <div class="orbit orbit-narrow"></div>
+          <div class="product-rig">
+            <img src="./assets/collectwatch-products.webp" width="1050" height="700" alt="" fetchpriority="high">
+          </div>
+          <span class="spark spark-one">✦</span><span class="spark spark-two">✧</span><span class="spark spark-three">✦</span>
+        </div>
+      </section>
+
+      <form id="hunt" class="hunt">
+        <label class="query" for="query">What are you looking for?</label>
+        <textarea id="query" name="query" rows="2" placeholder="Describe a product and your budget, e.g. Sony WH-1000XM5 under $250" maxlength="1500" required></textarea>
+        <div class="actions">
+          <button class="secondary filter-toggle" type="button" id="filter-toggle" aria-expanded="false" aria-controls="filters">
+            <span aria-hidden="true" class="filter-icon">☷</span> Filters <span class="filter-count" id="filter-count" hidden></span>
+          </button>
+          <button class="primary" type="submit" id="search">Search <span aria-hidden="true">↗</span></button>
+        </div>
+        <div id="active-filters" class="filter-tags" hidden></div>
+        <div id="filters" class="filters" hidden>
+          <p class="basis">Use these filters to set a model year or item location. A price entered here overrides the search text.</p>
+          <div class="field-grid">
+            <div class="field">
+              <label for="year">Model year</label>
+              <div><input id="year" name="year" type="text" inputmode="numeric" pattern="[1-9][0-9]{3}" maxlength="4" placeholder="Any year" title="Enter a four-digit model year"><button type="button" class="clear-field" data-clear="year" aria-label="Clear model year">×</button></div>
+            </div>
+            <div class="field">
+              <label for="budget">Max price (USD)</label>
+              <div><input id="budget" name="budget" type="text" inputmode="decimal" placeholder="Any price" maxlength="14"><button type="button" class="clear-field" data-clear="budget" aria-label="Clear max price">×</button></div>
+            </div>
+          </div>
+          <fieldset class="locations">
+            <legend>Item location</legend>
+            <p class="basis" id="location-mode">All countries by default.</p>
+            <div class="locations-grid">
+              <label><input type="checkbox" name="countries" value="US"> United States</label>
+              <label><input type="checkbox" name="countries" value="JP"> Japan</label>
+              <label><input type="checkbox" name="countries" value="KR"> South Korea</label>
+            </div>
+            <div class="location-actions"><button type="button" class="text-button" id="all-countries">All countries</button><button type="button" class="text-button" id="clear-location">Clear location</button></div>
+          </fieldset>
+          <button class="text-button" id="clear-filters" type="button">Clear filters</button>
+        </div>
+      </form>
+
+      <section class="examples" aria-labelledby="examples-title">
+        <h2 id="examples-title">Try an example</h2>
+        <div class="example-groups">
+          <div class="example-group">
+            <h3>Electronics <span class="coming-next">Coming next</span></h3>
+            <button type="button" class="example" data-query="Sony WH-1000XM5 black, new, under $250">
+              <span class="example-swatch violet" aria-hidden="true"></span><span><strong>Sony WH-1000XM5</strong><small>Black, new · under $250</small></span><span class="example-arrow" aria-hidden="true">↗</span>
+            </button>
+            <button type="button" class="example" data-query="Canon EOS R50 black camera body under $800">
+              <span class="example-swatch cyan" aria-hidden="true"></span><span><strong>Canon EOS R50</strong><small>Camera body · under $800</small></span><span class="example-arrow" aria-hidden="true">↗</span>
+            </button>
+          </div>
+          <div class="example-group">
+            <h3>Collectibles</h3>
+            <button type="button" class="example" data-query="Charizard ex 199/165, English PSA 9, under $450, at least 15% below comparable offers">
+              <span class="example-swatch rose" aria-hidden="true"></span><span><strong>Charizard ex</strong><small>English PSA 9 · under $450</small></span><span class="example-arrow" aria-hidden="true">↗</span>
+            </button>
           </div>
         </div>
       </section>
-      <form id="hunt" class="hunt">
-        <label class="query">What are you looking for?
-          <input id="query" name="query" type="search" placeholder="Product name or model" maxlength="1500" required>
-        </label>
-        <label>Model year
-          <input id="year" name="year" type="text" inputmode="numeric" pattern="[1-9][0-9]{3}" maxlength="4" placeholder="Any year" title="Enter a four-digit model year">
-        </label>
-        <label>Max price (USD)
-          <input id="budget" name="budget" type="number" min="0" max="1000000" step="0.01" inputmode="decimal" placeholder="Any price">
-        </label>
-        <label id="grade-field" hidden>Card grade
-          <select name="grade" id="grade" disabled><option value="">Any grade</option><option>PSA 8</option><option>PSA 9</option><option>PSA 10</option></select>
-        </label>
-        <button class="primary" type="submit" id="search" disabled><span aria-hidden="true">⌕</span> Search</button>
-        <button class="secondary ai-search" type="submit" id="ai-search" disabled>Search Pokémon with AI</button>
-        <p class="basis">Year and budget are optional. Prices exclude shipping and tax. AI search uses archived Pokémon listings.</p>
-        <p id="load-error" class="basis" role="alert" hidden></p>
-      </form>
-      <section class="examples" aria-labelledby="examples-title">
-        <h2 id="examples-title">Try an example</h2>
-        <div class="example-grid">
-          <button type="button" class="example" data-query="Sony WH-1000XM5" data-year="2022">
-            <span class="example-category">Headphones</span><strong>Sony WH-1000XM5</strong><span class="example-year">2022</span>
-          </button>
-          <button type="button" class="example" data-query="Canon EOS R50" data-year="2023">
-            <span class="example-category">Camera</span><strong>Canon EOS R50</strong><span class="example-year">2023</span>
-          </button>
-          <button type="button" class="example" data-query="Charizard ex 199/165" data-year="2023">
-            <span class="example-category">Trading card</span><strong>Charizard ex</strong><span class="example-year">2023</span>
-          </button>
-        </div>
-      </section>
+
       <section class="results" id="results" hidden aria-labelledby="results-title">
         <div class="results-head">
           <div><h2 id="results-title" tabindex="-1">Search results</h2><p id="status" role="status"></p></div>
           <button type="button" id="reset" class="secondary">Clear search</button>
         </div>
-        <p id="parsed-rule" role="status" hidden></p>
+        <div id="parsed-rule" class="filter-tags" hidden></div>
         <div id="findings"></div>
       </section>
     </main>
     <footer id="data">
       <strong>About the demo data</strong>
-      <p>Sony and Canon prices are simulated. Charizard prices come from archived eBay listings collected on November 15, 2026. Current availability and shipping costs are unverified.</p>
+      <p>CollectWatch uses archived eBay observations. Current availability is unverified. Prices exclude shipping, taxes, and duties. Item location comes from the listing. Shipping destinations are unverified.</p>
     </footer>
   </div>
 </body>

@@ -6,8 +6,7 @@ import {fileURLToPath} from 'node:url';
 const root=await realpath(fileURLToPath(new URL('./',import.meta.url)));
 const output=join(root,'public');
 const assets=[
-  'index.html','app.mjs','search.mjs','style.css',
-  'data/demo/products.mjs','data/demo/charizard-psa9-source-observations.json',
+  'index.html','app.mjs','style.css','assets/collectwatch-products.webp',
 ];
 
 // Validate sources before replacing any generated output; disallow symlinked input paths.

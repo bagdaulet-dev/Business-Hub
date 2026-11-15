@@ -53,9 +53,50 @@ test('model year filters the server fixture and stays outside the provider promp
   });
 });
 
+test('manual price and location filters take precedence in the saved catalog', async () => {
+  const requests = [];
+  const complete = async ({ text }) => {
+    requests.push(text);
+    return JSON.stringify({ ...rule, max_price_cents: 20000 });
+  };
+  await withServer({ complete }, async base => {
+    const text = 'Charizard ex under $200';
+    const apply = overrides => post(base, { text, overrides }).then(async response => {
+      assert.equal(response.status, 200);
+      return response.json();
+    });
+    const expanded = await apply({ max_price_cents: 48000, model_year: 2023 });
+    assert.equal(expanded.effectiveRule.max_price_cents, 48000);
+    assert.equal(expanded.overrideSources.max_price_cents, 'manual');
+    assert.equal(expanded.results[0].listing.price_cents, 35000);
+    assert.equal(expanded.results[0].benchmark, 46000);
+
+    const us = await apply({ max_price_cents: 48000, item_location_countries: ['US', 'US'] });
+    assert.deepEqual(us.effectiveRule.item_location_countries, ['US']);
+    assert.deepEqual(us.results.map(({ listing }) => listing.price_cents), [45999, 46000]);
+    assert.equal(us.results[0].benchmark, 50000);
+
+    const all = await apply({ max_price_cents: 48000, item_location_countries: [] });
+    assert.deepEqual(all.effectiveRule.item_location_countries, []);
+    assert.equal(all.results[0].listing.price_cents, 35000);
+    assert.deepEqual((await apply({ max_price_cents: 0 })).results, []);
+
+    for (const overrides of [null, [], { model_year: 2023.5 }, { max_price_cents: -1 },
+      { max_price_cents: 1e20 }, { item_location_countries: ['ZZ'] }, { item_location_countries: 'US' }]) {
+      const invalid = await post(base, { text, overrides });
+      assert.equal(invalid.status, 400);
+      assert.equal((await invalid.json()).error.code, 'INVALID_OVERRIDES');
+    }
+    const electronics = await post(base, { text: 'Sony WH-1000XM5 under $200' });
+    assert.equal(electronics.status, 422);
+    assert.equal((await electronics.json()).error.code, 'UNSUPPORTED_PRODUCT');
+    assert.deepEqual(requests, [text, text, text, text]);
+  });
+});
+
 test('strict static allowlist exposes app assets only; denies private paths and traversal',async()=>{
   await withServer({},async base=>{
-    for(const path of ['/','/index.html','/app.mjs','/style.css','/search.mjs','/data/demo/products.mjs','/data/demo/charizard-psa9-source-observations.json']){
+    for(const path of ['/','/index.html','/app.mjs','/style.css','/assets/collectwatch-products.webp']){
       const response=await fetch(base+path);assert.equal(response.status,200,path);assert.equal(response.headers.get('x-content-type-options'),'nosniff');
     }
     for(const path of ['/.env','/src/providers/telecom.mjs','/work/token','/.git/config','/server.mjs','/data/demo/HANDOFF.txt','/%2e%2e%2f.env','/%5c.env']){
